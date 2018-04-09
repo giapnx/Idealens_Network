@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System;
 
-public class CommandMgr : NetworkBehaviour {
+public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 
 	private static CommandMgr _instance;
 	public static CommandMgr Instance {
@@ -29,10 +29,7 @@ public class CommandMgr : NetworkBehaviour {
 	public void RegisterUsePressReplayEvent(Action callback) { OnUserPressReplayHandler += callback;}
 	#endregion
 
-	public UnityEngine.UI.Text CmdText;
-
-	[SyncVar]
-	Command syncCmd = Command.NONE;
+	Command receivedCMD = Command.NONE;
 	public enum Command 
 	{
 		NONE,
@@ -46,25 +43,37 @@ public class CommandMgr : NetworkBehaviour {
 	{
 		_instance = this;
 	}
-	
-	// Update is called once per frame
-	void Update () 
-	{
-//		print ("Test -----");
-		if (isServer) return;
 
-		if (syncCmd != Command.NONE)
-		{
-			ExecuteCommand ();
-		}
+	void OnEnable()
+	{
+		TCPTestClient.OnReceivedEvent += ExecuteCommand;
 	}
 
-	[Client]
-	void ExecuteCommand()
+	void OnDisable()
 	{
-		print ("CMD: " + syncCmd.ToString ());
-		CmdText.text = syncCmd.ToString ();
-		switch (syncCmd)
+		TCPTestClient.OnReceivedEvent -= ExecuteCommand;
+	}
+	
+	// Update is called once per frame
+	void Update ()
+	{
+//		if (receivedCMD != Command.NONE)
+//		{
+//			ExecuteCommand ();
+//		}
+	}
+
+//	public void Test()
+//	{
+//		print ("Test");
+//	}
+
+	public void ExecuteCommand(object msg)
+	{
+		print ("CMD: " + msg);
+		receivedCMD = (Command)Enum.Parse (typeof(Command), msg.ToString ());
+
+		switch (receivedCMD)
 		{
 		case Command.PLAY:
 			if (OnUserPressPlayHandler != null) { OnUserPressPlayHandler.Invoke ();	} 
@@ -79,7 +88,7 @@ public class CommandMgr : NetworkBehaviour {
 			break;
 
 		case Command.REPLAY:
-			OnUserPressStopHandler.Invoke ();
+			OnUserPressReplayHandler.Invoke ();
 			break;
 
 		default: // None
@@ -88,10 +97,9 @@ public class CommandMgr : NetworkBehaviour {
 
 	}
 
-	[Command]
-	public void CmdTellServerCmd(Command cmd)
-	{
-		syncCmd = cmd;
-		print ("CMD");
-	}
+//	public void CmdTellServerCmd(Command cmd)
+//	{
+//		receivedCMD = cmd;
+//		print ("CMD");
+//	}
 }

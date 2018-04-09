@@ -62,15 +62,19 @@ public class CMDControllerMgr : MonoBehaviour {
 	{
 		SetStatusText (_statusString);
 		playBtnText.text = _playBtnString;
-		StartCoroutine (CmdTellServerCo ());
+
+		TCPTestServer.Instance.SendMessage (_cmd.ToString ());
+//		print (_cmd.ToString ());
+
+//		StartCoroutine (CmdTellServerCo ());
 	}
 
-	IEnumerator CmdTellServerCo()
-	{
-		CommandMgrInstante.CmdTellServerCmd (_cmd);
-		yield return new WaitForEndOfFrame();
-		CommandMgrInstante.CmdTellServerCmd (CommandMgr.Command.NONE);
-	}
+//	IEnumerator CmdTellServerCo()
+//	{
+//		CommandMgrInstante.CmdTellServerCmd (_cmd);
+//		yield return new WaitForEndOfFrame();
+//		CommandMgrInstante.CmdTellServerCmd (CommandMgr.Command.NONE);
+//	}
 
 	public void OnClickPlay()
 	{

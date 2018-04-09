@@ -39,7 +39,7 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 
 	IEnumerator StopVideoCo()
 	{
-		yield return new WaitForSeconds (3f);
+		yield return new WaitForSeconds (2f);
 		videoPlayer.Stop ();
 	}
 
