@@ -44,16 +44,6 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 		_instance = this;
 	}
 
-	void OnEnable()
-	{
-		TCPTestClient.OnReceivedEvent += ExecuteCommand;
-	}
-
-	void OnDisable()
-	{
-		TCPTestClient.OnReceivedEvent -= ExecuteCommand;
-	}
-	
 	// Update is called once per frame
 	void Update ()
 	{

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 
 public class CMDControllerMgr : MonoBehaviour {
 
@@ -9,12 +10,6 @@ public class CMDControllerMgr : MonoBehaviour {
 	public Button PlayBtn;
 	public Text playBtnText;
 	string _playBtnString;
-
-	//	public Button StopBtn;
-	//	public Text textStopBtn;
-
-	//	public Button ReplayBtn;
-	//	public Text textReplayBtn;
 
 	public Text StatusText;
 	string _statusString;
@@ -44,6 +39,7 @@ public class CMDControllerMgr : MonoBehaviour {
 	void Start () {
 		CommandMgrInstante = CommandMgr.Instance;
 		SetDefault ();
+		ResetProgressBar ();
 	}
 
 	// Update is called once per frame
@@ -58,23 +54,50 @@ public class CMDControllerMgr : MonoBehaviour {
 		SetStatusText ("---");
 	}
 
+	void ResetProgressBar()
+	{
+		StartCoroutine (ResetProgressBarCo());
+	}
+
+	IEnumerator ResetProgressBarCo()
+	{
+		yield return new WaitForSeconds (1);
+		VideoProgressMgr.Instance.SetCountTime (0);
+		VideoProgressMgr.Instance.SetProgressBar ();
+	}
+
 	public void OnClickConfirm()
 	{
 		SetStatusText (_statusString);
 		playBtnText.text = _playBtnString;
 
-		TCPTestServer.Instance.SendMessage (_cmd.ToString ());
-//		print (_cmd.ToString ());
+		TCPServer.Instance.SendMessage (_cmd.ToString ());
+		print (_cmd.ToString ());
+		switch (_cmd) 
+		{
+		case CommandMgr.Command.PLAY:
+			PlayVideoMgr.Instance.HandlerUserPressPlay ();
+			break;
 
-//		StartCoroutine (CmdTellServerCo ());
+		case CommandMgr.Command.PAUSE:
+			PlayVideoMgr.Instance.HandlerUserPressPause ();
+			break;
+
+		case CommandMgr.Command.STOP:
+			PlayVideoMgr.Instance.HandlerUserPressStop ();
+			VideoProgressMgr.Instance.SetCountTime (0);
+			VideoProgressMgr.Instance.SetProgressBar ();
+			break;
+
+		case CommandMgr.Command.REPLAY:
+			PlayVideoMgr.Instance.HandlerUserPressReplay ();
+			VideoProgressMgr.Instance.SetCountTime (0);
+			VideoProgressMgr.Instance.SetProgressBar ();
+			break;
+		default:
+			break;
+		}
 	}
-
-//	IEnumerator CmdTellServerCo()
-//	{
-//		CommandMgrInstante.CmdTellServerCmd (_cmd);
-//		yield return new WaitForEndOfFrame();
-//		CommandMgrInstante.CmdTellServerCmd (CommandMgr.Command.NONE);
-//	}
 
 	public void OnClickPlay()
 	{

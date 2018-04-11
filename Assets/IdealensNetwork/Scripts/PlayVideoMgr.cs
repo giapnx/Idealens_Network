@@ -9,7 +9,7 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 
 	// Use this for initialization
 	void Start () {
-		StartCoroutine (StopVideoCo ());
+		StartCoroutine (PreloadVideoTime (1f));
 
 		CommandMgr CommandMgrInstance = CommandMgr.Instance;
 		CommandMgrInstance.RegisterUsePressPlayEvent (HandlerUserPressPlay);
@@ -19,48 +19,42 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 	}
 	
 //	 Update is called once per frame
-	void Update () 
-	{
-		if (Input.GetKeyDown (KeyCode.Space)) 
-		{
-			if (videoPlayer.isPlaying) {
-				videoPlayer.Pause ();
-			} else {
-				videoPlayer.Play ();
-			}
-		}
+//	void Update ()
+//	{
+//		
+//	}
 
-		if (Input.GetKeyDown (KeyCode.R)) 
-		{
-			videoPlayer.Stop ();
-			videoPlayer.Play ();
-		}
-	}
-
-	IEnumerator StopVideoCo()
+	IEnumerator PreloadVideoTime(float time)
 	{
-		yield return new WaitForSeconds (2f);
+//		videoPlayer.Play ();
+		yield return new WaitForSeconds (time);
 		videoPlayer.Stop ();
 	}
 
-	void HandlerUserPressPlay()
+	public void HandlerUserPressPlay()
 	{
 		videoPlayer.Play ();
 	}
 
-	void HandlerUserPressPause()
+	public void HandlerUserPressPause()
 	{
 		videoPlayer.Pause ();
 	}
 
-	void HandlerUserPressStop()
+	public void HandlerUserPressStop()
 	{
 		videoPlayer.Stop ();
 	}
 
-	void HandlerUserPressReplay()
+	public void HandlerUserPressReplay()
+	{
+		StartCoroutine (HandlerUserPressReplayCo());
+	}
+
+	IEnumerator HandlerUserPressReplayCo()
 	{
 		videoPlayer.Stop ();
+		yield return new WaitForSeconds (1);
 		videoPlayer.Play ();
 	}
 
