@@ -30,13 +30,14 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 	#endregion
 
 	Command receivedCMD = Command.NONE;
-	public enum Command 
+	public enum Command
 	{
 		NONE,
 		PLAY,
 		PAUSE,
 		STOP,
-		REPLAY
+		REPLAY,
+		SWITCH
 	}
 
 	void Awake()

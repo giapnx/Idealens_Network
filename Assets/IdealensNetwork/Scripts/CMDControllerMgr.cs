@@ -36,10 +36,23 @@ public class CMDControllerMgr : MonoBehaviour {
 	CommandMgr.Command _cmd;
 
 	// Use this for initialization
-	void Start () {
+	void Start () 
+	{
 		CommandMgrInstante = CommandMgr.Instance;
 		SetDefault ();
 		ResetProgressBar ();
+	}
+
+	void OnEnable()
+	{
+		PlayVideoMgr.DoneLoadVideoEvent += SetDefault;
+		PlayVideoMgr.DoneLoadVideoEvent += ResetProgressBar;
+	}
+
+	void OnDisable()
+	{
+		PlayVideoMgr.DoneLoadVideoEvent -= SetDefault;
+		PlayVideoMgr.DoneLoadVideoEvent -= ResetProgressBar;
 	}
 
 	// Update is called once per frame
@@ -56,12 +69,6 @@ public class CMDControllerMgr : MonoBehaviour {
 
 	void ResetProgressBar()
 	{
-		StartCoroutine (ResetProgressBarCo());
-	}
-
-	IEnumerator ResetProgressBarCo()
-	{
-		yield return new WaitForSeconds (1);
 		VideoProgressMgr.Instance.SetCountTime (0);
 		VideoProgressMgr.Instance.SetProgressBar ();
 	}
