@@ -20,6 +20,7 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 		CommandMgrInstance.RegisterUsePressPauseEvent (HandlerUserPressPause);
 		CommandMgrInstance.RegisterUsePressStopEvent (HandlerUserPressStop);
 		CommandMgrInstance.RegisterUsePressReplayEvent (HandlerUserPressReplay);
+		CommandMgrInstance.RegisterUsePressSwitchVideoEvent (HandlerUserPressSwitchVideo);
 	}
 	
 //	 Update is called once per frame
@@ -28,16 +29,29 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 //		
 //	}
 
-	public void SwitchVideo(int index)
+	public void HandlerUserPressSwitchVideo(int index)
 	{
 		videoPlayer.Stop ();
 		videoPlayer.clip = videoGallery [index];
-		StartCoroutine (PreloadVideoTime (1f));
+		StartCoroutine (PreloadVideoTimeSwitch ());
+	}
+
+	IEnumerator PreloadVideoTimeSwitch()
+	{
+		yield return new WaitForSeconds (1);
+		videoPlayer.Play ();
+		yield return new WaitForSeconds (1);
+		videoPlayer.Stop ();
+
+		if (DoneLoadVideoEvent != null) 
+		{
+			DoneLoadVideoEvent ();
+		}
 	}
 
 	IEnumerator PreloadVideoTime(float time)
 	{
-		videoPlayer.Play ();
+//		videoPlayer.Play ();
 		yield return new WaitForSeconds (time);
 		videoPlayer.Stop ();
 

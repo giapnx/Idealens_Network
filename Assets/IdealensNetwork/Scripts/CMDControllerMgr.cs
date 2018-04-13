@@ -24,13 +24,17 @@ public class CMDControllerMgr : MonoBehaviour {
 	public const string CONFIRM_PAUSE_TEXT 	= "DO YOU LIKE TO PAUSE VIDEO?";
 	public const string CONFIRM_STOP_TEXT	= "DO YOU LIKE TO STOP VIDEO?";
 	public const string CONFIRM_REPLAY_TEXT = "DO YOU LIKE TO REPLAY VIDEO?";
+	public const string CONFIRM_SWITCH_TEXT = "DO YOU LIKE TO SWITCH VIDEO?";
 
 	public const string PLAYING_TEXT = "PLAYING";
 	public const string PAUSED_TEXT = "PAUSED";
 	public const string STOPED_TEXT = "STOPED";
+	public const string SWITCH_TEXT = "SWITCH";
 	#endregion
 
 	bool isPlaying;
+	string _msg;
+	int _videoIndex = 0;
 
 	CommandMgr CommandMgrInstante;
 	CommandMgr.Command _cmd;
@@ -77,8 +81,8 @@ public class CMDControllerMgr : MonoBehaviour {
 	{
 		SetStatusText (_statusString);
 		playBtnText.text = _playBtnString;
-
-		TCPServer.Instance.SendMessage (_cmd.ToString ());
+		_msg = _cmd.ToString () + "|" + _videoIndex.ToString ();
+		TCPServer.Instance.SendMessage (_msg);
 		print (_cmd.ToString ());
 		switch (_cmd) 
 		{
@@ -92,15 +96,18 @@ public class CMDControllerMgr : MonoBehaviour {
 
 		case CommandMgr.Command.STOP:
 			PlayVideoMgr.Instance.HandlerUserPressStop ();
-			VideoProgressMgr.Instance.SetCountTime (0);
-			VideoProgressMgr.Instance.SetProgressBar ();
+			ResetProgressBar ();
 			break;
 
 		case CommandMgr.Command.REPLAY:
 			PlayVideoMgr.Instance.HandlerUserPressReplay ();
-			VideoProgressMgr.Instance.SetCountTime (0);
-			VideoProgressMgr.Instance.SetProgressBar ();
+			ResetProgressBar ();
 			break;
+
+		case CommandMgr.Command.SWITCH:
+			PlayVideoMgr.Instance.HandlerUserPressSwitchVideo (_videoIndex);
+			break;
+			
 		default:
 			break;
 		}
@@ -140,6 +147,15 @@ public class CMDControllerMgr : MonoBehaviour {
 		_playBtnString = "PAUSE";
 		isPlaying = true;
 		_cmd = CommandMgr.Command.REPLAY;
+	}
+
+	public void OnClickSwithVideo(int index)
+	{
+		SetText (CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
+		_playBtnString = "PLAY";
+		isPlaying = false;
+		_cmd = CommandMgr.Command.SWITCH;
+		_videoIndex = index;
 	}
 
 	void SetText(string _confirmText, string _status)

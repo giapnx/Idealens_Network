@@ -22,11 +22,13 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 	event Action OnUserPressPauseHandler;
 	event Action OnUserPressStopHandler;
 	event Action OnUserPressReplayHandler;
+	event Action<int> OnUserPressSwitchVideoHandler;
 
 	public void RegisterUsePressPlayEvent(Action callback) { OnUserPressPlayHandler 	+= callback;}
 	public void RegisterUsePressPauseEvent(Action callback) { OnUserPressPauseHandler 	+= callback;}
 	public void RegisterUsePressStopEvent(Action callback) { OnUserPressStopHandler 	+= callback;}
 	public void RegisterUsePressReplayEvent(Action callback) { OnUserPressReplayHandler += callback;}
+	public void RegisterUsePressSwitchVideoEvent(Action<int> callback) { OnUserPressSwitchVideoHandler += callback;}
 	#endregion
 
 	Command receivedCMD = Command.NONE;
@@ -62,7 +64,9 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 	public void ExecuteCommand(object msg)
 	{
 		print ("CMD: " + msg);
-		receivedCMD = (Command)Enum.Parse (typeof(Command), msg.ToString ());
+		string[] _msg = msg.ToString ().Split ("|" [0]);
+
+		receivedCMD = (Command)Enum.Parse (typeof(Command), _msg[0]);
 
 		switch (receivedCMD)
 		{
@@ -80,6 +84,12 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 
 		case Command.REPLAY:
 			OnUserPressReplayHandler.Invoke ();
+			break;
+
+		case Command.SWITCH:
+			if (OnUserPressSwitchVideoHandler != null) {
+				OnUserPressSwitchVideoHandler (int.Parse (_msg [1]));
+			}
 			break;
 
 		default: // None
