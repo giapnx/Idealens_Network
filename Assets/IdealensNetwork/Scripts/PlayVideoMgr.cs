@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
+using System.IO;
 
 public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 
@@ -11,8 +12,10 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 	public delegate void DoneLoadVideo();
 	public static event DoneLoadVideo DoneLoadVideoEvent;
 
-	// Use this for initialization
-	void Start () {
+    public int videoPlayingIndex;
+
+    // Use this for initialization
+    void Start () {
 		StartCoroutine (PreloadVideoTime (1f));
 
 		CommandMgr CommandMgrInstance = CommandMgr.Instance;
@@ -22,18 +25,13 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 		CommandMgrInstance.RegisterUsePressReplayEvent (HandlerUserPressReplay);
 		CommandMgrInstance.RegisterUsePressSwitchVideoEvent (HandlerUserPressSwitchVideo);
 	}
-	
-//	 Update is called once per frame
-//	void Update ()
-//	{
-//		
-//	}
 
-	public void HandlerUserPressSwitchVideo(int index)
+    public void HandlerUserPressSwitchVideo(int index)
 	{
 		videoPlayer.Stop ();
 		videoPlayer.clip = videoGallery [index];
-		StartCoroutine (PreloadVideoTimeSwitch ());
+        videoPlayingIndex = index;
+        StartCoroutine (PreloadVideoTimeSwitch ());
 	}
 
 	IEnumerator PreloadVideoTimeSwitch()

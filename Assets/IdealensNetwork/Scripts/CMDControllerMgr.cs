@@ -79,11 +79,6 @@ public class CMDControllerMgr : MonoBehaviour {
 
 	public void OnClickConfirm()
 	{
-		SetStatusText (_statusString);
-		playBtnText.text = _playBtnString;
-		_msg = _cmd.ToString () + "|" + _videoIndex.ToString ();
-		TCPServer.Instance.SendMessage (_msg);
-		print (_cmd.ToString ());
 		switch (_cmd) 
 		{
 		case CommandMgr.Command.PLAY:
@@ -111,7 +106,13 @@ public class CMDControllerMgr : MonoBehaviour {
 		default:
 			break;
 		}
-	}
+
+        SetStatusText(_statusString);
+        playBtnText.text = _playBtnString;
+        _msg = _cmd.ToString() + "|" + _videoIndex.ToString();
+        TCPServer.Instance.SendMessage(_msg);
+        print(_cmd.ToString());
+    }
 
 	public void OnClickPlay()
 	{
