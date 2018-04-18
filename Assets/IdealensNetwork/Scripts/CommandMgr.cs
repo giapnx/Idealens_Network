@@ -22,13 +22,15 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 	event Action OnUserPressPauseHandler;
 	event Action OnUserPressStopHandler;
 	event Action OnUserPressReplayHandler;
-	event Action<int> OnUserPressSwitchVideoHandler;
+	event Action<int> OnUserPressSwitchVideoClipHandler;
+	event Action<string> OnUserPressSwitchVideoUrlHandler;
 
-	public void RegisterUsePressPlayEvent(Action callback) { OnUserPressPlayHandler 	+= callback;}
+	public void RegisterUsePressPlayEvent(Action callback) 	{ OnUserPressPlayHandler 	+= callback;}
 	public void RegisterUsePressPauseEvent(Action callback) { OnUserPressPauseHandler 	+= callback;}
-	public void RegisterUsePressStopEvent(Action callback) { OnUserPressStopHandler 	+= callback;}
+	public void RegisterUsePressStopEvent(Action callback) 	{ OnUserPressStopHandler 	+= callback;}
 	public void RegisterUsePressReplayEvent(Action callback) { OnUserPressReplayHandler += callback;}
-	public void RegisterUsePressSwitchVideoEvent(Action<int> callback) { OnUserPressSwitchVideoHandler += callback;}
+	public void RegisterUsePressSwitchVideoClipEvent(Action<int> callback) { OnUserPressSwitchVideoClipHandler += callback;}
+	public void RegisterUsePressSwitchVideoUrlEvent(Action<string> callback) { OnUserPressSwitchVideoUrlHandler += callback;}
 	#endregion
 
 	Command receivedCMD = Command.NONE;
@@ -39,7 +41,8 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 		PAUSE,
 		STOP,
 		REPLAY,
-		SWITCH
+		SWITCH_CLIP,
+		SWITCH_URL
 	}
 
 	void Awake()
@@ -55,11 +58,6 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 //			ExecuteCommand ();
 //		}
 	}
-
-//	public void Test()
-//	{
-//		print ("Test");
-//	}
 
 	public void ExecuteCommand(object msg)
 	{
@@ -86,9 +84,14 @@ public class CommandMgr : SingletonMonoBehaviour<CommandMgr> {
 			OnUserPressReplayHandler.Invoke ();
 			break;
 
-		case Command.SWITCH:
-			if (OnUserPressSwitchVideoHandler != null) {
-				OnUserPressSwitchVideoHandler (int.Parse (_msg [1]));
+		case Command.SWITCH_CLIP:
+			if (OnUserPressSwitchVideoClipHandler != null) {
+				OnUserPressSwitchVideoClipHandler (int.Parse (_msg [1]));
+			}
+			break;
+		case Command.SWITCH_URL:
+			if (OnUserPressSwitchVideoUrlHandler != null) {
+				OnUserPressSwitchVideoUrlHandler (_msg [1]);
 			}
 			break;
 

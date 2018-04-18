@@ -59,7 +59,7 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 	/// <summary> 	
 	/// Runs in background TcpServerThread; Handles incomming TcpClient requests 	
 	/// </summary> 	
-	private void ListenForIncommingRequests () { 		
+	private void ListenForIncommingRequests () {
 		try { 			
 			// Create listener.			
 			tcpListener = new TcpListener(IPAddress.Parse(ip), 8052);

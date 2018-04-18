@@ -16,10 +16,11 @@ public class TCPClient : MonoBehaviour {
 //	public InputField ipInput;
 	public Canvas CanvasUI;
 	public GameObject Anchor;
+	public GameObject ConnectPanel;
 
 //	string ip = "192.168.1.88";
 
-	// Use this for initialization 	
+	// Use this for initialization
 	void Start () 
 	{
 //		Debug.Log ("Client start");
@@ -35,6 +36,7 @@ public class TCPClient : MonoBehaviour {
 	/// </summary> 	
 	public void ConnectToTcpServer () 
 	{
+		
 		print ("Connect to Server");
 		try {  			
 			clientReceiveThread = new Thread (new ThreadStart(ListenForData)); 			
@@ -48,14 +50,14 @@ public class TCPClient : MonoBehaviour {
 	/// <summary> 	
 	/// Runs in background clientReceiveThread; Listens for incomming data. 	
 	/// </summary>     
-	private void ListenForData() 
+	private void ListenForData()
 	{ 	
 		string ip = IPAddressInput.Instance.ipAddress;
 
-		try { 			
+		try {
 			socketConnection = new TcpClient(ip, 8052);
 
-			if (socketConnection.Connected) { MainThread.Call (InActionCanvas);}
+			if (socketConnection.Connected) { MainThread.Call (OnConnectedToServer);}
 
 			Byte[] bytes = new Byte[1024];
 			while (true) { 				
@@ -70,22 +72,23 @@ public class TCPClient : MonoBehaviour {
 						string serverMessage = Encoding.ASCII.GetString(incommingData); 						
 //						Debug.Log("server message received as: " + serverMessage);
 
-						String str = new String (serverMessage.ToCharArray ());
+						String str = new String (serverMessage.ToCharArray ()); // convert to object
 						MainThread.Call (CommandMgr.Instance.ExecuteCommand, str);
 
 					} 
 				} 			
 			}         
 		}         
-		catch (SocketException socketException) {             
+		catch (SocketException socketException) 
+		{             
 			Debug.Log("Socket exception: " + socketException);         
-		}     
+		}
 
 	}  	
 	/// <summary> 	
 	/// Send message to server using socket connection. 	
 	/// </summary> 	
-	public void SendMessage() {         
+	public void SendMessage() {
 		if (socketConnection == null) {             
 			return;         
 		}  		
@@ -106,10 +109,12 @@ public class TCPClient : MonoBehaviour {
 		}     
 	}
 
-	void InActionCanvas()
+	void OnConnectedToServer()
 	{
+		IPAddressInput.Instance.SaveLastIpInput ();
 		CanvasUI.gameObject.SetActive (false);
 		Anchor.SetActive (false);
+		ConnectPanel.SetActive (false);
 	}
 
 //	void OnApplicationQuit()

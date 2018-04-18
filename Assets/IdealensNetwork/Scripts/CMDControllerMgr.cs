@@ -35,6 +35,7 @@ public class CMDControllerMgr : MonoBehaviour {
 	bool isPlaying;
 	string _msg;
 	int _videoIndex = 0;
+	String _nameVideo;
 
 	CommandMgr CommandMgrInstante;
 	CommandMgr.Command _cmd;
@@ -49,14 +50,14 @@ public class CMDControllerMgr : MonoBehaviour {
 
 	void OnEnable()
 	{
-		PlayVideoMgr.DoneLoadVideoEvent += SetDefault;
-		PlayVideoMgr.DoneLoadVideoEvent += ResetProgressBar;
+		PlayVideoMgr.PreloadCompleted += SetDefault;
+		PlayVideoMgr.PreloadCompleted += ResetProgressBar;
 	}
 
 	void OnDisable()
 	{
-		PlayVideoMgr.DoneLoadVideoEvent -= SetDefault;
-		PlayVideoMgr.DoneLoadVideoEvent -= ResetProgressBar;
+		PlayVideoMgr.PreloadCompleted -= SetDefault;
+		PlayVideoMgr.PreloadCompleted -= ResetProgressBar;
 	}
 
 	// Update is called once per frame
@@ -81,10 +82,10 @@ public class CMDControllerMgr : MonoBehaviour {
 	{
 		SetStatusText (_statusString);
 		playBtnText.text = _playBtnString;
-		_msg = _cmd.ToString () + "|" + _videoIndex.ToString ();
+
 		TCPServer.Instance.SendMessage (_msg);
-		print (_cmd.ToString ());
-		switch (_cmd) 
+		print (_msg);
+		switch (_cmd)
 		{
 		case CommandMgr.Command.PLAY:
 			PlayVideoMgr.Instance.HandlerUserPressPlay ();
@@ -104,8 +105,12 @@ public class CMDControllerMgr : MonoBehaviour {
 			ResetProgressBar ();
 			break;
 
-		case CommandMgr.Command.SWITCH:
-			PlayVideoMgr.Instance.HandlerUserPressSwitchVideo (_videoIndex);
+		case CommandMgr.Command.SWITCH_CLIP:
+			PlayVideoMgr.Instance.HandlerUserPressSwitchVideoClip (_videoIndex);
+			break;
+
+		case CommandMgr.Command.SWITCH_URL:
+			PlayVideoMgr.Instance.HandlerUserPressSwitchVideoUrl (_nameVideo);
 			break;
 			
 		default:
@@ -131,6 +136,7 @@ public class CMDControllerMgr : MonoBehaviour {
 			isPlaying = false;
 			_cmd = CommandMgr.Command.PAUSE;
 		}
+		_msg = _cmd.ToString ();
 	}
 
 	public void OnClickStop()
@@ -139,6 +145,7 @@ public class CMDControllerMgr : MonoBehaviour {
 		_playBtnString = "PLAY";
 		isPlaying = false;
 		_cmd = CommandMgr.Command.STOP;
+		_msg = _cmd.ToString ();
 	}
 
 	public void OnClickReplay()
@@ -147,15 +154,27 @@ public class CMDControllerMgr : MonoBehaviour {
 		_playBtnString = "PAUSE";
 		isPlaying = true;
 		_cmd = CommandMgr.Command.REPLAY;
+		_msg = _cmd.ToString ();
 	}
 
-	public void OnClickSwithVideo(int index)
+	public void OnClickSwithVideoClip(int index)
 	{
 		SetText (CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
 		_playBtnString = "PLAY";
 		isPlaying = false;
-		_cmd = CommandMgr.Command.SWITCH;
+		_cmd = CommandMgr.Command.SWITCH_CLIP;
 		_videoIndex = index;
+		_msg = _cmd.ToString () + "|" + _videoIndex.ToString ();
+	}
+
+	public void OnClickSwithVideoUrl(string nameVideo)
+	{
+		SetText (CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
+		_playBtnString = "PLAY";
+		isPlaying = false;
+		_cmd = CommandMgr.Command.SWITCH_URL;
+		_nameVideo = nameVideo;
+		_msg = _cmd.ToString () + "|" + _nameVideo;
 	}
 
 	void SetText(string _confirmText, string _status)

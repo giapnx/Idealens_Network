@@ -18,7 +18,17 @@ public class VideoProgressMgr : SingletonMonoBehaviour<VideoProgressMgr>
 	void Start () 
 	{
 		PlayVideoInstance = PlayVideoMgr.Instance;
-		SetDefault ();
+//		SetDefault ();
+	}
+
+	void OnEnable()
+	{
+		PlayVideoMgr.PreloadCompleted += SetDefault;
+	}
+
+	void OnDisable()
+	{
+		PlayVideoMgr.PreloadCompleted -= SetDefault;
 	}
 
 	void Update()
