@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 
-public class VideoProgressMgr : SingletonMonoBehaviour<VideoProgressMgr> 
+public class ServerVideoProgressMgr : SingletonMonoBehaviour<ServerVideoProgressMgr> 
 {
 	public Slider progressBarSlider;
 	public Text timeText;
@@ -12,23 +12,23 @@ public class VideoProgressMgr : SingletonMonoBehaviour<VideoProgressMgr>
 	float lengthOfVideo;
 
 	float _countTime;
-	PlayVideoMgr PlayVideoInstance;
+	ServerVideoPlayer PlayVideoInstance;
 
 	// Use this for initialization
 	void Start () 
 	{
-		PlayVideoInstance = PlayVideoMgr.Instance;
+		PlayVideoInstance = ServerVideoPlayer.Instance;
 //		SetDefault ();
 	}
 
 	void OnEnable()
 	{
-		PlayVideoMgr.PreloadCompleted += SetDefault;
+		ServerVideoPlayer.PreloadCompleted += SetDefault;
 	}
 
 	void OnDisable()
 	{
-		PlayVideoMgr.PreloadCompleted -= SetDefault;
+		ServerVideoPlayer.PreloadCompleted -= SetDefault;
 	}
 
 	void Update()
@@ -43,7 +43,7 @@ public class VideoProgressMgr : SingletonMonoBehaviour<VideoProgressMgr>
 	
 	public void SetDefault()
 	{
-		lengthOfVideo = (float)PlayVideoMgr.Instance.videoPlayer.clip.length;
+		lengthOfVideo = (float)ServerVideoPlayer.Instance.videoPlayer.clip.length;
 
 		timeText.text = "0:00";
 		TimeSpan time = TimeSpan.FromSeconds (lengthOfVideo);

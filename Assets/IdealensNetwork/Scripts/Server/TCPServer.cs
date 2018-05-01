@@ -1,7 +1,7 @@
 using System;
 using System.Collections; 
 using System.Collections.Generic; 
-using System.Net; 
+using System.Net;
 using System.Net.Sockets; 
 using System.Text; 
 using System.Threading; 
@@ -22,8 +22,9 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 	private Thread tcpListenerThread;  	
 	/// <summary> 	
 	/// Create handle to connected tcp clients. 	
-	/// </summary> 	
+	/// </summary>
 	private List<TcpClient> connectedTcpClients = new List<TcpClient> ();
+	public static Hashtable clientList = new Hashtable ();
 
 	readonly object lockObj = new object (); 
 	#endregion
@@ -34,14 +35,16 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 	string ip = "";
 	public Text ipText;
 	public Text connectText;
+
+//	public static ManualResetEvent allDone = new ManualResetEvent(false);
 		
 	// Use this for initialization
-	void Start () { 		
+	void Start () {
 
 		ip = LocalIPAddress ();
 		print (ip);
 
-		// Start TcpServer background thread 		
+		// Start TcpServer background thread
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests)); 		
 		tcpListenerThread.IsBackground = true; 		
 		tcpListenerThread.Start();
@@ -91,30 +94,59 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 		catch (SocketException socketException) { 			
 			Debug.Log("SocketException " + socketException.ToString()); 		
 		}     
-	}  	
-	 	
-//	public void SendMessage(string msg) { 		
-//		if (connectedTcpClient == null) {             
-//			return;         
-//		}  		
-//		
-//		try { 			
-//			// Get a stream object for writing. 			
-//			NetworkStream stream = connectedTcpClient.GetStream(); 			
-//			if (stream.CanWrite) {                 
-//				string serverMessage = msg;
-//				// Convert string message to byte array.                 
-//				byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes(serverMessage); 				
-//				// Write byte array to socketConnection stream.               
-//				stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);               
-//				Debug.Log("Server sent message:" + msg);           
-//			}       
-//		} 		
-//		catch (SocketException socketException) {             
-//			Debug.Log("Socket exception: " + socketException);         
-//		} 	
-//	}
+	}
 
+	void OnRequested(IAsyncResult ar) 
+	{
+		lock (lockObj) {
+			TcpListener listener = (TcpListener)ar.AsyncState;
+			TcpClient clientSocket = null;
+
+			try
+			{
+				// Get client socket
+				clientSocket = listener.EndAcceptTcpClient(ar);
+			}
+			catch (SocketException socketException) 
+			{             
+				Debug.Log("Socket exception: " + socketException);
+				return;
+			}     
+
+			// Check 
+
+			string clientIp = ((IPEndPoint)clientSocket.Client.RemoteEndPoint).Address.ToString();
+
+			if (clientList.ContainsKey (clientIp))
+				clientList [clientIp] = clientSocket;
+			else
+				clientList.Add (clientIp, clientSocket);
+
+//			HandleClient client = new HandleClient ();
+//			client.startClient (clientSocket);
+
+			connectedTcpClients.Add(clientSocket);
+			SetConnectText (connectedTcpClients.Count);
+
+			print (clientIp + " connected | Count: " + connectedTcpClients.Count);
+			//			NetworkStream stream = client.GetStream();
+			//
+			//			StreamReader reader = new StreamReader(stream);
+			//
+			//			while (client.Connected) {
+			//				while (!reader.EndOfStream){
+			//					OnMessage(reader.ReadLine());
+			//				}
+			//
+			//				if (client.Client.Poll(1000, SelectMode.SelectRead) && (client.Client.Available == 0)) {
+			//					connectedTcpClients.Remove(client);
+			//					break;
+			//				}
+			//			}
+			listener.BeginAcceptSocket(OnRequested, listener);
+		}
+	}
+	 	
 	/// <summary> 	
 	/// Send message to all client using socket connection. 	
 	/// </summary>
@@ -130,7 +162,9 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 			TcpClient client = connectedTcpClients [i];
 			try 
 			{
-				// Detect if client disconnected
+//				NetworkStream stream = client.GetStream ();
+//				stream.Write (body, 0, body.Length);
+//				 Detect if client disconnected
 				if (client.Client.Poll(1000, SelectMode.SelectRead) && (client.Client.Available == 0))
 				{
 					string Ip = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
@@ -174,45 +208,6 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 		return localIP;
 	}
 
-	void OnRequested(IAsyncResult ar) 
-	{
-		lock (lockObj) {
-			TcpListener listener = (TcpListener)ar.AsyncState;
-			TcpClient client = null;
-			try
-			{
-				// Get client socket
-				client = listener.EndAcceptTcpClient(ar);
-			}
-			catch (SocketException socketException) 
-			{             
-				Debug.Log("Socket exception: " + socketException);
-				return;
-			}     
-
-			// Check 
-			connectedTcpClients.Add(client);
-			SetConnectText (connectedTcpClients.Count);
-			string Ip = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
-			print (Ip + " connected | Count: " + connectedTcpClients.Count);
-//			NetworkStream stream = client.GetStream();
-//
-//			StreamReader reader = new StreamReader(stream);
-//
-//			while (client.Connected) {
-//				while (!reader.EndOfStream){
-//					OnMessage(reader.ReadLine());
-//				}
-//
-//				if (client.Client.Poll(1000, SelectMode.SelectRead) && (client.Client.Available == 0)) {
-//					connectedTcpClients.Remove(client);
-//					break;
-//				}
-//			}
-			listener.BeginAcceptSocket(OnRequested, listener);
-		}
-	}
-
 	void SetConnectText(int _clientNumbers)
 	{
 		connectText.text = "Connected: " +_clientNumbers.ToString ();
@@ -226,3 +221,12 @@ public class TCPServer : SingletonMonoBehaviour<TCPServer> {
 		}
 	}
 }
+
+//public class StateObject
+//{
+//	// Client socket
+//	public Socket workSocket = null;
+//	// Size of receive buffer
+//	public const int BufferSize = 1024;
+//	// Receive
+//}

@@ -67,7 +67,7 @@ public class IPAddressInput : SingletonMonoBehaviour<IPAddressInput> {
 		string ip = octets [0] + "." + octets [1] + "." + octets [2] + "." + octets [3];
 
 		string path = Application.persistentDataPath + "/" + DataConfig.IP_SAVE_PATH;
-		StreamWriter writer = new StreamWriter (path, true);
+		StreamWriter writer = new StreamWriter (path, false);
 		writer.WriteLine (ip);
 		writer.Close ();
 	}

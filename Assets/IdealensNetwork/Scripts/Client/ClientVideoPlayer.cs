@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Video;
 using System.IO;
 
-public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
+public class ClientVideoPlayer : SingletonMonoBehaviour<ClientVideoPlayer> {
 
 	public VideoClip[] videoGallery;
 	[HideInInspector]
@@ -24,27 +24,28 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 
 		SetDefault ();
 		HandlerUserPressSwitchVideoClip (0);
-//		HandlerUserPressSwitchVideoUrl ("Url_Video1.mp4");
+		//		HandlerUserPressSwitchVideoUrl ("Url_Video1.mp4");
 
-		CommandMgr CommandMgrInstance = CommandMgr.Instance;
+		ClientCommandMgr CommandMgrInstance = ClientCommandMgr.Instance;
 		CommandMgrInstance.RegisterUsePressPlayEvent (HandlerUserPressPlay);
 		CommandMgrInstance.RegisterUsePressPauseEvent (HandlerUserPressPause);
 		CommandMgrInstance.RegisterUsePressStopEvent (HandlerUserPressStop);
 		CommandMgrInstance.RegisterUsePressReplayEvent (HandlerUserPressReplay);
 		CommandMgrInstance.RegisterUsePressSwitchVideoClipEvent (HandlerUserPressSwitchVideoClip);
 		CommandMgrInstance.RegisterUsePressSwitchVideoUrlEvent (HandlerUserPressSwitchVideoUrl);
+
 	}
 
 	void OnDisable()
 	{
 		videoPlayer.prepareCompleted -= PreloadVideoTime;
 	}
-	
-//	 Update is called once per frame
-//	void Update ()
-//	{
-//		
-//	}
+
+	//	 Update is called once per frame
+	//	void Update ()
+	//	{
+	//		
+	//	}
 
 	/// <summary>
 	/// Set default of value for VideoPlayer.
@@ -53,7 +54,7 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 	{
 		videoPlayer.prepareCompleted += PreloadVideoTime;
 		videoPlayer.playOnAwake = false;
-//		videoPlayer.source = VideoSource.VideoClip;
+		//		videoPlayer.source = VideoSource.VideoClip;
 
 		//Set Audio Output to AudioSource
 		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
@@ -70,12 +71,12 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 		videoPlayer.source = VideoSource.VideoClip;
 		videoPlayer.clip = videoGallery [index];
 
-//		//Set Audio Output to AudioSource
-//		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
-//
-//		// Assign the Audio from Video to AudioSource to be played
-//		videoPlayer.EnableAudioTrack (0, true);
-//		videoPlayer.SetTargetAudioSource (0, audioSource);
+		//		//Set Audio Output to AudioSource
+		//		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+		//
+		//		// Assign the Audio from Video to AudioSource to be played
+		//		videoPlayer.EnableAudioTrack (0, true);
+		//		videoPlayer.SetTargetAudioSource (0, audioSource);
 
 		StopAllCoroutines ();
 		isLoadCompleted = false;
@@ -95,12 +96,12 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 		videoPlayer.source = VideoSource.Url;
 		videoPlayer.url = _url;
 
-//		//Set Audio Output to AudioSource
-//		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
-//
-//		// Assign the Audio from Video to AudioSource to be played
-//		videoPlayer.EnableAudioTrack (0, true);
-//		videoPlayer.SetTargetAudioSource (0, audioSource);
+		//		//Set Audio Output to AudioSource
+		//		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+		//
+		//		// Assign the Audio from Video to AudioSource to be played
+		//		videoPlayer.EnableAudioTrack (0, true);
+		//		videoPlayer.SetTargetAudioSource (0, audioSource);
 
 		StopAllCoroutines ();
 		isLoadCompleted = false;
@@ -119,34 +120,32 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 		_vp.Play ();
 		yield return new WaitForSeconds (1);
 		_vp.Stop ();
-//		_vp.Prepare ();
+		//		_vp.Prepare ();
 
-//		if (PreloadCompleted != null) 
-//		{
-//			PreloadCompleted ();
-//		}
+		//		if (PreloadCompleted != null) 
+		//		{
+		//			PreloadCompleted ();
+		//		}
 		isLoadCompleted = true;
 		print ("Loaded!");
-		print ("Time1: " + _vp.frameCount);
-		print ("Time2: " + _vp.frameRate);
+		//		print ("Time1: " + _vp.frameCount);
+		//		print ("Time2: " + _vp.frameRate);
 	}
 
 	public void HandlerUserPressPlay()
 	{
 		videoPlayer.Play ();
-//		audioSource.Play ();
 	}
 
 	public void HandlerUserPressPause()
 	{
 		videoPlayer.Pause ();
-//		audioSource.Pause ();
 	}
 
 	public void HandlerUserPressStop()
 	{
 		videoPlayer.Stop ();
-//		videoPlayer.Prepare ();
+		//		videoPlayer.Prepare ();
 	}
 
 	public void HandlerUserPressReplay()
@@ -157,7 +156,7 @@ public class PlayVideoMgr : SingletonMonoBehaviour<PlayVideoMgr> {
 	IEnumerator HandlerUserPressReplayCo()
 	{
 		videoPlayer.Stop ();
-//		videoPlayer.Prepare ();
+		//		videoPlayer.Prepare ();
 		yield return new WaitForSeconds (1);
 		videoPlayer.Play ();
 	}
