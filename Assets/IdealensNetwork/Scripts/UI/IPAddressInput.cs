@@ -18,6 +18,7 @@ public class IPAddressInput : SingletonMonoBehaviour<IPAddressInput> {
 	// Use this for initialization
 	void Start () 
 	{
+//		CreateTestFile ();
 		LoadLastIpInput ();
 		SetDefault ();
 		SetTextIP ();
@@ -43,33 +44,77 @@ public class IPAddressInput : SingletonMonoBehaviour<IPAddressInput> {
 		string path = Application.persistentDataPath + "/" + DataConfig.IP_SAVE_PATH;
 		if (File.Exists (path))
 		{
-			StreamReader reader = new StreamReader (path);
-			string data = reader.ReadLine ();
-			print (data);
-			string[] _ip = data.Trim ().Split ("."[0]);
-			octets [0] = int.Parse (_ip[0]);
-			octets [1] = int.Parse (_ip[1]);
-			octets [2] = int.Parse (_ip[2]);
-			octets [3] = int.Parse (_ip[3]);
-		}
-		else
-		{
-			octets [0] = 192;
-			octets [1] = 168;
-			octets [2] = 1;
-			octets [3] = 87;
+			using(StreamReader reader = new StreamReader (path))
+			{
+				string data = reader.ReadLine ();
+				if (data != null) 
+				{
+					print (data);
+					string[] _ip = data.Trim ().Split ("."[0]);
+					octets [0] = int.Parse (_ip[0]);
+					octets [1] = int.Parse (_ip[1]);
+					octets [2] = int.Parse (_ip[2]);
+					octets [3] = int.Parse (_ip[3]);
+
+					return;
+				}
+
+			}
 		}
 
+		octets [0] = 192;
+		octets [1] = 168;
+		octets [2] = 1;
+		octets [3] = 97;
+
+	}
+
+	public void CreateTestFile()
+	{
+		try 
+		{
+			string path = Application.persistentDataPath + "/" + "TestFile2.txt";
+
+			FileInfo fileInfo = new FileInfo(path);
+			if (!Directory.Exists (fileInfo.DirectoryName)) 
+			{
+				Directory.CreateDirectory (fileInfo.DirectoryName);
+			}
+			else
+			{
+				print ("File existed !");
+			}
+
+			using(FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+			{
+				StreamWriter writer = new StreamWriter (stream);
+				writer.WriteLine ("This is test !");
+				writer.Close ();
+				print ("Created file at: " + path);
+			}
+
+			foreach (var item in Directory.GetFiles (Application.persistentDataPath)) {
+				Debug.Log (item);
+			}
+
+		} catch (System.Exception ex) {
+			Debug.Log (ex);
+		}
 	}
 
 	public void SaveLastIpInput()
 	{
-		string ip = octets [0] + "." + octets [1] + "." + octets [2] + "." + octets [3];
+		try 
+		{
+			string ip = octets [0] + "." + octets [1] + "." + octets [2] + "." + octets [3];
 
-		string path = Application.persistentDataPath + "/" + DataConfig.IP_SAVE_PATH;
-		StreamWriter writer = new StreamWriter (path, false);
-		writer.WriteLine (ip);
-		writer.Close ();
+			string path = Application.persistentDataPath + "/" + DataConfig.IP_SAVE_PATH;
+			StreamWriter writer = new StreamWriter (path, false);
+			writer.WriteLine (ip);
+			writer.Close ();
+		} catch (System.Exception ex) {
+			Debug.Log (ex);
+		}
 	}
 
 	public void OnToggleChanged(int _toggleId)

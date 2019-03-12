@@ -16,10 +16,10 @@ public class ListClientUI : SingletonMonoBehaviour<ListClientUI> {
 	public Color disconnectColor;
 
 	// Use this for initialization
-	void Start () 
-	{
-		
-	}
+//	void Start () 
+//	{
+//		
+//	}
 	
 	// Update is called once per frame
 	void Update () 
@@ -32,7 +32,7 @@ public class ListClientUI : SingletonMonoBehaviour<ListClientUI> {
 	public ItemClientUI CreateNewClient(int _index)
 	{
 		GameObject go = Instantiate (ItemClientPref);
-		go.transform.parent = ContentTrans;
+		go.transform.SetParent (ContentTrans);
 		go.transform.localPosition = Vector3.zero;
 		go.transform.localEulerAngles = Vector3.zero;
 		go.transform.localScale = new Vector3 (1, 1, 1);

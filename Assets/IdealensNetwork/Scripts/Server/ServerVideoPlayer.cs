@@ -70,7 +70,9 @@ public class ServerVideoPlayer : SingletonMonoBehaviour<ServerVideoPlayer> {
 
 		StopAllCoroutines ();
 		isLoadCompleted = false;
+
 		videoPlayer.Prepare ();
+		StartCoroutine (CheckPrepareVideo());
 	}
 
 	public void OnClickSwitchVideoUrl(string videoName)
@@ -96,7 +98,9 @@ public class ServerVideoPlayer : SingletonMonoBehaviour<ServerVideoPlayer> {
 		StopAllCoroutines ();
 		isLoadCompleted = false;
 		print ("Preparing !");
+
 		videoPlayer.Prepare ();
+		StartCoroutine (CheckPrepareVideo());
 	}
 
 	void PreloadVideoTime(VideoPlayer _vp)
@@ -120,6 +124,15 @@ public class ServerVideoPlayer : SingletonMonoBehaviour<ServerVideoPlayer> {
 		print ("Loaded!");
 //		print ("Time1: " + _vp.frameCount);
 //		print ("Time2: " + _vp.frameRate);
+	}
+
+	IEnumerator CheckPrepareVideo()
+	{
+		yield return new WaitForSeconds (0.3f);
+		print ("prepare continue");
+		if (!videoPlayer.isPrepared) {
+			videoPlayer.Prepare ();
+		}
 	}
 
 	public void OnClickPlay()

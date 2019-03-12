@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ServerUIController : MonoBehaviour {
-
+public class ServerUIController : SingletonMonoBehaviour<ServerUIController> 
+{
 	public Text ipText;
 	public Text connectNumText;
+	public Dropdown listVideoDropdown;
+	public GameObject SendingPanel;
+//	int selectedValue = -1;
 
-	Dictionary<string, ItemClientUI> clients = new Dictionary<string, ItemClientUI>();
+	public Dictionary<string, ItemClientUI> clients = new Dictionary<string, ItemClientUI>();
 	private int countConnectingClients = 0;
 	private Sprite currentVideoStatus;
 
@@ -18,9 +21,9 @@ public class ServerUIController : MonoBehaviour {
 	}
 
 	// Use this for initialization
-	void OnEnable () 
+	void OnEnable ()
 	{
-		AsynchronousSocketListener.OnServerStartListion 	+= SetIpText;
+		AsynchronousSocketListener.OnServerStartListening 	+= SetIpText;
 
 		AsynchronousSocketListener.OnClientConnectEvent 	+= OnClientConnect;
 		AsynchronousSocketListener.OnClientDisconnectEvent 	+= OnClientDisconnect;
@@ -29,11 +32,15 @@ public class ServerUIController : MonoBehaviour {
 		AsynchronousSocketListener.OnClientPauseVideoEvent 	+= OnClientPauseVideo;
 		AsynchronousSocketListener.OnClientStopVideoEvent 	+= OnClientStopVideo;
 		AsynchronousSocketListener.OnClientPlayVideoEvent 	+= OnClientPlayVideo;
+		AsynchronousSocketListener.OnRecieveListVideo 		+= OnReceiveListVideo;
+
+		AsynchronousSocketListener.OnStartSendVideo += StartSendVideo;
+
 	}
 
 	void OnDisable ()
 	{
-		AsynchronousSocketListener.OnServerStartListion 	-= SetIpText;
+		AsynchronousSocketListener.OnServerStartListening 	-= SetIpText;
 
 		AsynchronousSocketListener.OnClientConnectEvent 	-= OnClientConnect;
 		AsynchronousSocketListener.OnClientDisconnectEvent 	-= OnClientDisconnect;
@@ -42,13 +49,17 @@ public class ServerUIController : MonoBehaviour {
 		AsynchronousSocketListener.OnClientPauseVideoEvent 	-= OnClientPauseVideo;
 		AsynchronousSocketListener.OnClientStopVideoEvent 	-= OnClientStopVideo;
 		AsynchronousSocketListener.OnClientPlayVideoEvent 	-= OnClientPlayVideo;
+		AsynchronousSocketListener.OnRecieveListVideo 		-= OnReceiveListVideo;
+
+		AsynchronousSocketListener.OnStartSendVideo -= StartSendVideo;
+
 	}
 	
 	// Update is called once per frame
-	void Update () 
-	{
-		
-	}
+//	void Update () 
+//	{
+//		
+//	}
 
 
 
@@ -71,7 +82,11 @@ public class ServerUIController : MonoBehaviour {
 
 	void OnClientDisconnect(string ip)
 	{
-		countConnectingClients > 0 ? countConnectingClients-- : 0;
+		if (countConnectingClients > 0)
+			countConnectingClients--;
+		else
+			countConnectingClients = 0;
+
 		UpdateConnectNumbersText ();
 
 		clients [ip].SetClientStatus (ListClientUI.Instance.disconnectColor);
@@ -107,6 +122,21 @@ public class ServerUIController : MonoBehaviour {
 //		clients [ip].SetTimeText (time);
 	}
 
+	void OnReceiveListVideo(List<string> options)
+	{
+		listVideoDropdown.ClearOptions ();
+		listVideoDropdown.AddOptions (options);
+	}
+
+	public void OnClickSwitchVideoUrl()
+	{
+		if (listVideoDropdown.options.Count == 0) {
+			return;
+		}
+		print ("Index: " + listVideoDropdown.value);
+		ServerCMDController.Instance.OnClickSwithVideoUrl (listVideoDropdown.options[listVideoDropdown.value].text);
+	}
+
 	void SetIpText(string _ip)
 	{
 		ipText.text = "IP: " + _ip;
@@ -116,4 +146,15 @@ public class ServerUIController : MonoBehaviour {
 	{
 		connectNumText.text = "Connected: " + countConnectingClients;
 	}
+
+	void StartSendVideo()
+	{
+		SendingPanel.SetActive (true);
+	}
+
+	void EndSendVideo()
+	{
+		SendingPanel.SetActive (false);
+	}
+
 }

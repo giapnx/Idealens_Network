@@ -117,6 +117,7 @@ public class ClientVideoPlayer : SingletonMonoBehaviour<ClientVideoPlayer> {
 
 	IEnumerator PreloadVideoTimeSwitch(VideoPlayer _vp)
 	{
+		print ("Preload");
 		_vp.Play ();
 		yield return new WaitForSeconds (1);
 		_vp.Stop ();
@@ -145,7 +146,7 @@ public class ClientVideoPlayer : SingletonMonoBehaviour<ClientVideoPlayer> {
 	public void HandlerUserPressStop()
 	{
 		videoPlayer.Stop ();
-		//		videoPlayer.Prepare ();
+//		videoPlayer.Prepare ();
 	}
 
 	public void HandlerUserPressReplay()

@@ -6,24 +6,26 @@ public class MainThread: MonoBehaviour {
  
    class CallInfo
    {
-     public Function func;
-     public object parameter;
-     public CallInfo(Function Func, object Parameter)
-     {
-       func = Func;
-       parameter = Parameter;
-     }
-     public void Execute()
-     {
-       func(parameter);
-     }
+     	public Function func;
+		public byte[] parameter;
+
+		public CallInfo(Function Func, byte[] Parameter)
+     	{
+       		func = Func;
+       		parameter = Parameter;
+     	}
+
+     	public void Execute()
+     	{
+       		func(parameter);
+     	}
    }
  
-   public delegate void Function(object parameter);
-   public delegate void Func();
+	public delegate void Function(byte[] parameter);
+   	public delegate void Func();
  
-   static List<CallInfo> calls = new List<CallInfo>();
-   static List<Func> functions = new List<Func>();
+   	static List<CallInfo> calls = new List<CallInfo>();
+   	static List<Func> functions = new List<Func>();
  
    static Object callsLock = new Object();
    static Object functionsLock = new Object();
@@ -36,7 +38,7 @@ public class MainThread: MonoBehaviour {
      StartCoroutine(Executer());
    }
  
-   public static void Call(Function Func, object Parameter)
+	public static void Call(Function Func, byte[] Parameter)
    {
      lock(callsLock)
      {

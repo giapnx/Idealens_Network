@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Net;
 
 public class TCPClient : SingletonMonoBehaviour<TCPClient> {  	
 	#region private members 	
@@ -15,20 +16,282 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 
 	public Canvas CanvasUI;
 	public GameObject Anchor;
-	public GameObject ConnectPanel;
 
+	public GameObject ConnectPanel;
+	public GameObject TryConnectPanel;
+
+	private int _maxPack = 1000;
+	public Queue<byte[]> receivePackVideo = new Queue<byte[]>();
+	static object _door = new object ();
+	public bool OnReceiveDone = true;
 
 	// Use this for initialization
 	void Start () 
 	{
-//		Debug.Log ("Client start");
-//		ConnectToTcpServer();     
-	}  	
-	// Update is called once per frame
-//	void Update () 
-//	{         
-//		
-//	}  	
+		TryStartClient ();
+	}
+
+	Byte[] bytes = new Byte[1024];
+
+	Socket client;
+
+	public void TryStartClient()
+	{
+		StartClient ();
+		StartCoroutine (CheckTryConnect (3));
+	}
+
+	IEnumerator CheckTryConnect(float waitTime)
+	{
+		yield return new WaitForSeconds (waitTime);
+		if (!client.Connected) {
+			ActivePanelConnect ();
+		}
+	}
+
+	public void StartClient()
+	{
+		// Connect to a remote device.
+		try 
+		{
+			string ipString = IPAddressInput.Instance.ipAddress;
+			IPAddress ipAddress = IPAddress.Parse (ipString);
+			IPEndPoint remoteEP = new IPEndPoint(ipAddress, 8052);
+
+			// Create a TCP/IP socket.
+			client = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+			// Connect to the remote endpoint.
+			client.BeginConnect (remoteEP, new AsyncCallback(ConnectCallBack), client);
+
+		}
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
+		}
+	}
+
+	void ConnectCallBack(IAsyncResult ar)
+	{
+		try 
+		{
+			// Retrieve the socket from the state object.
+			Socket client = (Socket)ar.AsyncState;
+
+			// Complete the connection.
+			client.EndConnect (ar);
+
+			if (client.Connected) {	MainThread.Call (OnConnectedToServer);}
+
+			Receive (client);
+		} 
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
+		}
+	}
+
+	void Receive(Socket client)
+	{
+		print ("Start receive data from remote device.");
+		try 
+		{
+			// Create the state object.
+			StateObject state = new StateObject();
+			state.workSocket = client;
+
+			// Begin receiving the data from the remote device.
+			client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallBack), state);
+		} 
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
+		}
+	}
+
+	void ReceiveCallBack(IAsyncResult ar)
+	{
+		print ("ReceiveCallBack");
+		String content = String.Empty;
+
+		try
+		{
+			// Receive the state object and the client socket
+			// from the asynchronous state object.
+			StateObject state = (StateObject)ar.AsyncState;
+			Socket client = state.workSocket;
+
+			// Read data from the remote device.
+			int bytesRead = client.EndReceive (ar);
+
+			if (bytesRead > 0)
+			{
+				byte[] pack = new byte[bytesRead];
+				Buffer.BlockCopy (state.buffer, 0, pack, 0, bytesRead);
+
+				byte _msgType = state.buffer[0];
+				Debug.Log ("type: " + _msgType);
+
+				if (_msgType != Message.SEND_VIDEO) 
+				{
+					// There might be more data, so store the data received so far.
+					state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
+
+					content = state.sb.ToString ();
+					print ("ReceiveCallBack: " + content);
+
+					if (content.IndexOf ("<EOF>") > -1) // exist flag EOF.
+					{
+						
+						byte[] msg = new byte[bytesRead];
+						Buffer.BlockCopy (state.buffer, 0, msg, 0, bytesRead);
+						MainThread.Call(ClientCommandMgr.Instance.ExecuteCommand, msg);
+
+						state.sb.Length = 0;
+						client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallBack), state);
+					}
+					else
+					{
+						// Get more data.
+						client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveToEndCallBack), state);
+					}
+				}
+				else
+				{
+//					for (int i = 1; i < 15; i++) {
+//						Debug.Log (pack[i]);
+//					}
+//					print ("bytesRead: "+bytesRead);
+//					print (Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
+					OnReceiveDone = false;
+					MainThread.Call (ClientCommandMgr.Instance.ReceiveStartOfVideo, pack);
+					// Get more data.
+					client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveToEndVideoCallBack), state);
+				}
+
+
+			}
+		} 
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
+		}
+	}
+
+	void ReceiveToEndCallBack(IAsyncResult ar)
+	{
+		print ("ReceiveToEndCallBack");
+		String content = String.Empty;
+
+		try
+		{
+			StateObject state = (StateObject)ar.AsyncState;
+			Socket client = state.workSocket;
+
+			// Read data from the remote device.
+			int bytesRead = client.EndReceive (ar);
+
+			if (bytesRead > 0)
+			{
+				// There might be more data, so store the data received so far.  
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
+
+				content = state.sb.ToString ();
+				print ("ReceiveToEndCallBack: " + content);
+
+				if (content.IndexOf ("<EOF>") > -1) // exist flag EOF.
+				{
+					print ("bytesRead: "+bytesRead);
+					byte[] msg = new byte[bytesRead];
+					Buffer.BlockCopy (state.buffer, 0, msg, 0, bytesRead);
+					MainThread.Call(ClientCommandMgr.Instance.ExecuteCommand, msg);
+					state.sb.Length = 0;
+					client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallBack), state);
+				}
+				else
+				{
+					// Get more data.
+					client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveToEndCallBack), state);
+				}
+
+			}
+		} 
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
+		}
+	}
+
+	void ReceiveToEndVideoCallBack(IAsyncResult ar)
+	{
+//		print ("ReceiveToEndVideoCallBack");
+		String content = String.Empty;
+
+		try 
+		{
+			StateObject state = (StateObject)ar.AsyncState;
+			Socket client = state.workSocket;
+
+			// Read data from the remote device.
+			int bytesRead = client.EndReceive (ar);
+
+			if (bytesRead > 0)
+			{
+				content = Encoding.ASCII.GetString(state.buffer, 0, bytesRead);
+
+//				print ("bytesRead: " + bytesRead + " | ReceiveToEndVideoCallBack: " + content);
+
+				if (content.IndexOf ("<EOF>") > -1) // exist flag EOF.
+				{
+					byte[] msg = new byte[bytesRead - 5]; // remove last 5 bytes flag
+					Buffer.BlockCopy (state.buffer, 0, msg, 0, bytesRead - 5);
+//					MainThread.Call(ClientCommandMgr.Instance.ReceiveToEndVideo, msg);
+//					MainThread.Call (PushPack, msg);
+					PushPack (msg);
+					OnReceiveDone = true;
+					client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallBack), state);
+					print ("Done receive !!!!!!");
+				}
+				else
+				{
+//					MainThread.Call (PushPack, state.buffer);
+					byte[] msg = new byte[bytesRead]; // remove last 5 bytes flag
+					Buffer.BlockCopy (state.buffer, 0, msg, 0, bytesRead);
+					PushPack (msg);
+					// Get more data.
+					client.BeginReceive (state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveToEndVideoCallBack), state);
+				}
+			}
+		} 
+		catch (Exception ex) 
+		{
+			
+		}
+	}
+
+	public void SendMessageToServer(byte[] byteData)
+	{
+		if (client == null || !client.Connected) { return;}
+
+		client.BeginSend (byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallBack), client);
+	}
+
+	void SendCallBack(IAsyncResult ar)
+	{
+		try 
+		{
+			// Retrieve the socket from the state object.
+			Socket client = (Socket)ar.AsyncState;
+
+			// Complete sendung the data to the remote device.
+			int byteSent = client.EndSend (ar);
+		} 
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
+		}
+	}
+
 	/// <summary> 	
 	/// Setup socket connection. 	
 	/// </summary> 	
@@ -36,9 +299,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	{
 		print ("Connect to Server");
 		try {  			
-			clientReceiveThread = new Thread (new ThreadStart(ListenForData)); 			
+			clientReceiveThread = new Thread (new ThreadStart(StartClient)); 			
 			clientReceiveThread.IsBackground = true; 			
-			clientReceiveThread.Start();  		
+			clientReceiveThread.Start();
 		} 		
 		catch (Exception e) { 			
 			Debug.Log("On client connect exception " + e); 		
@@ -47,82 +310,130 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	/// <summary> 	
 	/// Runs in background clientReceiveThread; Listens for incomming data. 	
 	/// </summary>     
-	private void ListenForData()
-	{ 	
-		string ip = IPAddressInput.Instance.ipAddress;
-
-		try {
-			socketConnection = new TcpClient(ip, 8052);
-
-			if (socketConnection.Connected) { MainThread.Call (OnConnectedToServer);}
-
-			Byte[] bytes = new Byte[1024];
-			while (true) {
-				// Get a stream object for reading 				
-				using (NetworkStream stream = socketConnection.GetStream()) 
-				{
-					int length; 					
-					// Read incomming stream into byte arrary. 					
-					while ((length = stream.Read(bytes, 0, bytes.Length)) != 0) 
-					{
-						var incommingData = new byte[length];
-						Array.Copy(bytes, 0, incommingData, 0, length);
-						// Convert byte array to string message.
-						string serverMessage = Encoding.ASCII.GetString(incommingData);
-
-						String str = new String (serverMessage.ToCharArray ()); // convert to object
-						MainThread.Call (ClientCommandMgr.Instance.ExecuteCommand, str);
-					}
-				}
-			} 
-		}     
-		catch (SocketException socketException) 
-		{             
-			Debug.Log("Socket exception: " + socketException);         
-		}
-
-	}  	
+//	private void ListenForData()
+//	{ 	
+//		string ip = IPAddressInput.Instance.ipAddress;
+//
+//		try {
+//			socketConnection = new TcpClient(ip, 8052);
+//
+//			if (socketConnection.Connected) { MainThread.Call (OnConnectedToServer);}
+//
+//			byte[] msgType = new byte[1];
+//
+//			while (true) {
+//				// Get a stream object for reading 				
+//				using (NetworkStream stream = socketConnection.GetStream()) 
+//				{
+//					stream.Read (msgType, 0, 1);
+//					Debug.Log ("msg: " + msgType[0]);
+//					int length;
+//					// Read incomming stream into byte arrary. 					
+//					while ((length = stream.Read(bytes, 0, bytes.Length)) != 0) 
+//					{
+//						print ("Length: " + length);
+//						var incommingData = new byte[length];
+//						Array.Copy(bytes, 0, incommingData, 0, length);
+//						// Convert byte array to string message.
+//						string serverMessage = Encoding.ASCII.GetString(incommingData);
+//						print (serverMessage);
+////						String str = new String (serverMessage.ToCharArray ()); // convert to object
+////						MainThread.Call (ClientCommandMgr.Instance.ExecuteCommand, str);
+//					}
+//				}
+//			} 
+//		}     
+//		catch (SocketException socketException) 
+//		{             
+//			Debug.Log("Socket exception: " + socketException);         
+//		}
+//
+//	}  	
 	/// <summary> 	
 	/// Send message to server using socket connection. 	
 	/// </summary> 	
-	public void SendMessage(string _msg)
-	{
-		if (socketConnection == null) { return;}
+//	public void SendMessageToServer(byte[] _msg)
+//	{
+//		if (socketConnection == null) { return;}
+//
+//		try
+//		{
+//			// Get a stream object for writing. 			
+//			NetworkStream stream = socketConnection.GetStream();
+//			if (stream.CanWrite) 
+//			{
+////				print ("Send: "+_msg);
+//				// Convert string message to byte array.
+////				byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(_msg + "<EOF>");
+//				// Write byte array to socketConnection stream.
+//				stream.Write(_msg, 0, _msg.Length);
+//			}
+//		}
+//		catch (SocketException socketException) {
+//			Debug.Log("Socket exception: " + socketException);
+//		}
+//	}
 
-		try
+	public byte[] PopPack()
+	{
+		byte[] result;
+		lock (_door)
 		{
-			// Get a stream object for writing. 			
-			NetworkStream stream = socketConnection.GetStream();
-			if (stream.CanWrite) 
+			while (receivePackVideo.Count == 0)
 			{
-				print ("Send: "+_msg);
-				// Convert string message to byte array.
-				byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(_msg + "<EOF>");
-				// Write byte array to socketConnection stream.
-				stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
+				Monitor.Wait (_door);
 			}
+
+			result = receivePackVideo.Dequeue ();
+			Monitor.Pulse (_door);
+
+//			print ("--- Pop: " + result[0]);
 		}
-		catch (SocketException socketException) {
-			Debug.Log("Socket exception: " + socketException);
+
+		return result;
+	}
+
+	public void PushPack(byte[] pack)
+	{
+		lock (_door) 
+		{
+			while (receivePackVideo.Count >= _maxPack)
+			{
+				Monitor.Wait (_door);
+			}
+//			print ("+++ Push: " + pack[0]);
+			receivePackVideo.Enqueue (pack);
+			Monitor.Pulse (_door);
 		}
 	}
 
+//	public void ClearPack()
+//	{
+//		receivePackVideo.Clear ();
+//		packLength = 0;
+//	}
+
 	void OnConnectedToServer()
 	{
-		IPAddressInput.Instance.SaveLastIpInput ();
 		CanvasUI.gameObject.SetActive (false);
 		Anchor.SetActive (false);
-		ConnectPanel.SetActive (false);
+		IPAddressInput.Instance.SaveLastIpInput ();
+	}
+
+	void ActivePanelConnect()
+	{
+		ConnectPanel.SetActive (true);
+		TryConnectPanel.SetActive (false);
 	}
 
 	void OnApplicationPause(bool pauseStatus)
 	{
 		if (pauseStatus)
 		{
-			SendMessage (MessageType.CLIENT_INACTIVE.ToString ());
+			SendMessageToServer (Message.Pack (Message.CLIENT_INACTIVE));
 		}
 		else
-			SendMessage (MessageType.CLIENT_ACTIVE.ToString ());
+			SendMessageToServer (Message.Pack (Message.CLIENT_ACTIVE));
 
 //		print ("Pause: "+pauseStatus);
 	}

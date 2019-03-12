@@ -12,6 +12,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
+using System.IO;
 
 public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSocketListener> {
 
@@ -22,11 +23,17 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 	public static event OnClient OnClientActiveEvent;
 	public static event OnClient OnClientPauseVideoEvent;
 	public static event OnClient OnClientStopVideoEvent;
+	public static event OnClient OnClientDoneReceiveVideo;
+	public static event Action<string, float> OnClientPercentReceive;
 
 	public delegate void OnClientPlayVideo(string ip, int time);
 	public static event OnClientPlayVideo OnClientPlayVideoEvent;
 
-	public static event Action<string> OnServerStartListion;
+	public static event Action<string> OnServerStartListening;
+	public static event Action<List<string>> OnRecieveListVideo;
+	bool isReceiveListVideo = false;
+
+	public static event Action OnStartSendVideo;
 
 	// Use this for initialization
 	void Start () 
@@ -35,28 +42,14 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 	}
 
 	// Update is called once per frame
-	void Update ()
-	{
-		
-	}
+//	void Update ()
+//	{
+//		
+//	}
 
-	// State object for reading client data asynchronously
-	public class StateObject 
-	{
-		// Client  socket.
-		public Socket workSocket = null;
-		// Size of receive buffer.
-		public const int BufferSize = 1024;
-		// Receive buffer.
-		public byte[] buffer = new byte[BufferSize];
-		// Received data string.
-		public StringBuilder sb = new StringBuilder();  
-	}
-
-//	List<StateObject> activeConnections = new List<StateObject>();
 	List<Socket> activeConnections = new List<Socket>();
 
-	public void StartListening() 
+	public void StartListening()
 	{
 		IPAddress ipAddress = IPAddress.Parse(LocalIPAddress ());
 		IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 8052);
@@ -72,14 +65,20 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 			// Start an asynchronous socket to listen for connections.
 			listener.BeginAccept( new AsyncCallback(AcceptCallback),listener );
 			Debug.LogFormat ("Server start listening at: {0}", ipAddress.ToString ());
-			OnServerStartListion(ipAddress.ToString ());
-			StartCoroutine (CheckClientsConnect (1));
+
+			OnServerStartListening(ipAddress.ToString ());
+			StartCoroutine (CheckClientsConnect (2.5f));
 
 		} catch (Exception e) {
 			Debug.Log(e.ToString());
 		}
 	}
 
+	/// <summary>
+	/// Checks the connect status of clients by time.
+	/// </summary>
+	/// <returns>The clients connect.</returns>
+	/// <param name="time">Loop Time</param>
 	 IEnumerator CheckClientsConnect(float time)
 	{
 		while(true)
@@ -88,13 +87,13 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 
 			if (activeConnections.Count != 0)
 			{
-				print ("Check connects");
+//				print ("Check connects");
 				for (int i = activeConnections.Count-1; i>= 0; i--)
 				{
 					Socket each = activeConnections[i];
 					string _ip = ((IPEndPoint)each.RemoteEndPoint).Address.ToString ();
 
-					if (each.Poll (900, SelectMode.SelectRead) && each.Available == 0)
+					if (each.Poll ((int)(time * 1000) - 200, SelectMode.SelectRead) && each.Available == 0)
 					{
 						Debug.LogFormat ("Client: {0} disconnected", _ip);
 
@@ -124,10 +123,9 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		//確立した接続のオブジェクトをリストに追加
 		string ipAddres = ((IPEndPoint)state.workSocket.RemoteEndPoint).Address.ToString();
 
-//		if (activeConnections.Contains (state.workSocket))
-//			Debug.Log ("Index: " + activeConnections.IndexOf (handler));
-//		else
 		activeConnections.Add (state.workSocket);
+		// Get lists video from first connect client
+		if (!isReceiveListVideo) { Send (state.workSocket, Message.Pack (Message.GET_LIST_VIDEO));}
 
 		if (OnClientConnectEvent != null) {	OnClientConnectEvent (ipAddres);}
 
@@ -135,107 +133,140 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 
 		//接続待ちを再開しないと次の接続を受け入れなくなる
 		listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
-
 	}
 
 	public void ReadCallback(IAsyncResult ar)
 	{
-//		print ("reading data");
 		String content = String.Empty;
-
-		// Retrieve the state object and the handler socket
-		// from the asynchronous state object.
-		StateObject state = (StateObject) ar.AsyncState;
-		Socket handler = state.workSocket;
-
-		// Read data from the client socket. 
-		int bytesRead = handler.EndReceive(ar);
-
-		if (bytesRead > 0) 
+		try 
 		{
-			// There  might be more data, so store the data received so far.
-			state.sb.Append(Encoding.ASCII.GetString(state.buffer,0,bytesRead));
+			// Retrieve the state object and the handler socket
+			// from the asynchronous state object.
+			StateObject state = (StateObject) ar.AsyncState;
+			Socket handler = state.workSocket;
 
-			// Check for end-of-file tag. If it is not there, read 
-			// more data.
-			content = state.sb.ToString();
-//			print ("content: " + content);
+			// Read data from the client socket. 
+			int bytesRead = handler.EndReceive(ar);
 
-			//MSDNのサンプルはEOFを検知して出力をしているけれどもncコマンドはEOFを改行時にLFしか飛ばさないので\nを追加
-			if (content.IndexOf("\n") > -1 || content.IndexOf("<EOF>") > -1) {
-				// All the data has been read from the 
-				// client. Display it on the console.
-				Debug.LogFormat("Data : {0}", content );
-				// Echo the data back to the client.
-				//Send(handler, content);
+			if (bytesRead > 0)
+			{
+				print ("bytesRead: "+bytesRead);
+				byte _msgType = state.buffer [0];
+//				Debug.Log ("msgType: " + _msgType);
+				// There  might be more data, so store the data received so far.
+//				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
 
-				string _ip = ((IPEndPoint)state.workSocket.RemoteEndPoint).Address.ToString ();
-				HandlerMessage (content.Substring (0, content.Length - 5), _ip); // remove end-of-file tag
+				// Check for end-of-file tag. If it is not there, read more data.
+//				content = state.sb.ToString();
+				content = Encoding.ASCII.GetString(state.buffer, 1, bytesRead-1); // remove first byte
+//				print ("content: " + content);
 
-//				foreach (StateObject each in activeConnections) {
-//					//string message = string.Format ("You are client No.{0}", i);
-//					//					Send (each.workSocket, message);
-//					//eachをactiveConnectionの中から見つけてそのインデックスを取得する方法がこれ
-//					int num_of_each = activeConnections.FindIndex (delegate(StateObject s) {return s == each;});
-//					//state:送信者の番号f
-//					int num_of_from = activeConnections.FindIndex (delegate(StateObject s) {return s == state;});
-//					Debug.LogFormat ("Index {0} | {1}", num_of_each, num_of_from);
-//					string message = string.Format ("you:{0} / from:{1} / data:{2}\n", num_of_each, num_of_from, content);
-////					Send (each.workSocket, message);
-//				}
+				//MSDNのサンプルはEOFを検知して出力をしているけれどもncコマンドはEOFを改行時にLFしか飛ばさないので\nを追加
+				if (content.IndexOf("\n") > -1 || content.IndexOf("<EOF>") > -1) {
+					// All the data has been read from the 
+					// client. Display it on the console.
+					Debug.LogFormat("Data : {0}", content );
 
-				//clear data in object before next receive
-				//StringbuilderクラスはLengthを0にしてクリアする
-				state.sb.Length = 0;
+					string _ip = ((IPEndPoint)state.workSocket.RemoteEndPoint).Address.ToString ();
+					string[] result = content.Split (new string[]{ "<EOF>" }, System.StringSplitOptions.None);
+					HandlerMessage (_msgType, result[0], _ip); // remove flag "<EOF>"
 
-				// Not all data received. Get more.
-				handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-					new AsyncCallback(ReadCallback), state);
+					//clear data in object before next receive
+					//StringbuilderクラスはLengthを0にしてクリアする
+//					state.sb.Length = 0;
 
-			} else {
-				// Not all data received. Get more.
-				handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-					new AsyncCallback(ReadCallback), state);
+					// Not all data received. Get more.
+					handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+						new AsyncCallback(ReadCallback), state);
+
+				} else {
+					// Not all data received. Get more.
+					handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+						new AsyncCallback(ReadCallback), state);
+				}
 			}
+		} 
+		catch (Exception ex) 
+		{
+			Debug.Log (ex);
 		}
+
 	}
 
-	void HandlerMessage(string _msg, string _ip)
+	void HandlerMessage(byte msgType, string _msg, string _ip)
 	{
-		string[] parameters = _msg.Split ("|"[0]);
-		MessageType msgType = (MessageType)Enum.Parse (typeof(MessageType), parameters [0]);
-
 		switch (msgType)
 		{
-		case MessageType.VIDEO_PLAY:
+		case Message.CLIENT_PLAY_VIDEO:
 			OnClientPlayVideoEvent (_ip, 0);
 			break;
-		case MessageType.VIDEO_PAUSE:
+
+		case Message.CLIENT_PAUSE_VIDEO:
 			OnClientPauseVideoEvent (_ip);
 			break;
-		case MessageType.VIDEO_STOP:
+
+		case Message.CLIENT_STOP_VIDEO:
 			OnClientStopVideoEvent (_ip);
 			break;
-		case MessageType.CLIENT_ACTIVE:
+
+		case Message.CLIENT_ACTIVE:
 			OnClientActiveEvent (_ip);
 			break;
-		case MessageType.CLIENT_INACTIVE:
+
+		case Message.CLIENT_INACTIVE:
 			OnClientInactiveEvent (_ip);
 			break;
-		case MessageType.CLIENT_DISCONNECT:
+
+		case Message.CLIENT_DISCONNECT:
 			OnClientDisconnectEvent (_ip);
 			break;
+
+		case Message.CLIENT_SEND_LIST_VIDEO:
+			string[] parameters = _msg.Substring (0, _msg.Length - 1).Split ("|"[0]);
+			List<string> options = new List<string> (parameters);
+
+			OnRecieveListVideo (options);
+			isReceiveListVideo = true;
+			break;
+
+		case Message.CLIENT_PERCENT_RECEIVE:
+			print ("percent: " + _msg);
+			float percent = 0;
+			if (float.TryParse (_msg, out percent))
+				OnClientPercentReceive (_ip, percent);
+			break;
+
+		case Message.CLIENT_DONE_RECEIVE_VIDEO:
+			OnClientDoneReceiveVideo (_ip);
+			break;
+
 		default:
 			Debug.Log ("Can't not define type of message !");
 			break;
 		}
 	}
 
-	public void SendMessage(string data)
+	/// <summary>
+	/// Send a string message to all of clients.
+	/// </summary>
+	/// <param name="data">messageStr.</param>
+	public void SendAll(string messageStr)
 	{
 		foreach (Socket each in activeConnections)
 		{
-			Send (each, data);
+			Send (each, messageStr);
+		}
+	}
+
+	/// <summary>
+	/// Send a byte array message to all of clients.
+	/// </summary>
+	/// <param name="byteData">Byte data.</param>
+	public void SendAll(byte[] byteData)
+	{
+		foreach (Socket each in activeConnections) 
+		{
+			Send (each, byteData);
 		}
 	}
 
@@ -250,6 +281,83 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		Debug.Log ("Send: " + data);
 	}
 
+	void Send(Socket handler, byte[] byteData)
+	{
+		// Begin sending the data to the remote device.
+		handler.BeginSend(byteData, 0, byteData.Length, 0,
+			new AsyncCallback(SendCallback), handler);
+		Debug.Log ("Send: " + byteData.Length + " bytes.");
+	}
+
+	public void SendVideoToClient(string nameOfVideo)
+	{
+//		string path = Path.Combine (Application.dataPath + "/IdealensNetwork/Video/", nameOfVideo);
+		string path = Path.Combine (Application.persistentDataPath + "/Video/", nameOfVideo);
+		if (!File.Exists (path))
+		{
+			Debug.LogError ("Not exist video !");
+			return;
+		}
+
+		OnStartSendVideo ();
+
+		byte msgType = Message.SEND_VIDEO;
+
+		// Convert data of video to bytes
+		byte[] fileNameByte = Encoding.ASCII.GetBytes (nameOfVideo);
+		byte[] fileNameLenghtByte = BitConverter.GetBytes (fileNameByte.Length); // 4 bytes
+
+		byte[] dataOfVideo = File.ReadAllBytes (path);
+		print ("Length: " + dataOfVideo.Length);
+
+		byte[] videoSizeByte = BitConverter.GetBytes (dataOfVideo.Length);
+
+		byte[] eofByte = System.Text.Encoding.ASCII.GetBytes ("<EOF>");
+
+		byte[] dataOfMsg = new byte[1 + fileNameByte.Length + fileNameLenghtByte.Length
+			+ dataOfVideo.Length + videoSizeByte.Length + eofByte.Length];
+
+		int countData = 0;
+		// type of msg
+		dataOfMsg [0] = msgType;
+
+		// name of file
+		fileNameLenghtByte.CopyTo (dataOfMsg, countData += 1); // 4 bytes
+		fileNameByte.CopyTo (dataOfMsg, countData += fileNameLenghtByte.Length);
+		// data of video
+		videoSizeByte.CopyTo (dataOfMsg, countData += fileNameByte.Length); // 4 bytes
+		dataOfVideo.CopyTo (dataOfMsg, countData += videoSizeByte.Length);
+		eofByte.CopyTo (dataOfMsg, countData += dataOfVideo.Length);
+
+
+
+		print ("dataOfMsg: " + dataOfMsg.Length + " | Last byte: " + dataOfMsg[dataOfMsg.Length-1]);
+
+		int numberOfPack = dataOfMsg.Length / 1024000;
+		int tailBytes = dataOfMsg.Length % 1024000;
+
+//		foreach (var each in activeConnections) 
+//		{
+//			each.BeginSend (dataOfMsg, 0, dataOfMsg.Length, 0, new AsyncCallback(SendCallback), each);
+//		}
+
+		for (int i = 0; i < numberOfPack; i++) {
+			foreach (var each in activeConnections)
+			{
+				each.BeginSend (dataOfMsg, i*1024000, 1024000, 0, new AsyncCallback(SendCallback), each);
+			}
+		}
+
+		if (tailBytes != 0)
+		{
+			foreach (var each in activeConnections)
+			{
+				each.BeginSend (dataOfMsg, numberOfPack*1024000, tailBytes, 0, new AsyncCallback(SendCallback), each);
+			}
+		}
+
+	}
+
 	private void SendCallback(IAsyncResult ar) {
 		try {
 			// Retrieve the socket from the state object.
@@ -257,7 +365,7 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 
 			// Complete sending the data to the remote device.
 			int bytesSent = handler.EndSend(ar);
-//			Debug.LogFormat("Sent {0} bytes to client.", bytesSent);
+			Debug.LogFormat("Sent {0} bytes to client.", bytesSent);
 
 			//この２つはセットでつかるらしい
 			//handler.Shutdown(SocketShutdown.Both);
@@ -309,5 +417,21 @@ public enum MessageType
 	CLIENT_DISCONNECT,
 	VIDEO_PLAY,
 	VIDEO_PAUSE,
-	VIDEO_STOP
+	VIDEO_STOP,
+	LIST_VIDEO,
+	GET_LIST_VIDEO,
+	SEND_VIDEO
+}
+
+// State object for reading client data asynchronously
+public class StateObject 
+{
+	// Client  socket.
+	public Socket workSocket = null;
+	// Size of receive buffer.
+	public const int BufferSize = 10240;
+	// Receive buffer.
+	public byte[] buffer = new byte[BufferSize];
+	// Received data string.
+	public StringBuilder sb = new StringBuilder();
 }

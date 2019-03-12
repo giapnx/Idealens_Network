@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 
-public class ServerCMDController : MonoBehaviour {
+public class ServerCMDController : SingletonMonoBehaviour<ServerCMDController> {
 
 	#region UI
 	public Button PlayBtn;
@@ -33,12 +33,13 @@ public class ServerCMDController : MonoBehaviour {
 	#endregion
 
 	bool isPlaying;
-	string _msg;
+	byte[] _msg;
 	int _videoIndex = 0;
 	String _nameVideo;
 
 //	CommandMgr CommandMgrInstante;
 	ClientCommandMgr.Command _cmd;
+	byte msgType;
 
 	// Use this for initialization
 	void Start () 
@@ -83,8 +84,8 @@ public class ServerCMDController : MonoBehaviour {
 		SetStatusText (_statusString);
 		playBtnText.text = _playBtnString;
 
-		AsynchronousSocketListener.Instance.SendMessage (_msg);
-		print (_msg);
+		AsynchronousSocketListener.Instance.SendAll (_msg);
+		print (System.Text.Encoding.ASCII.GetString (_msg));
 		switch (_cmd)
 		{
 		case ClientCommandMgr.Command.PLAY:
@@ -127,6 +128,7 @@ public class ServerCMDController : MonoBehaviour {
 			_playBtnString = "PAUSE";
 			isPlaying = true;
 			_cmd = ClientCommandMgr.Command.PLAY;
+			msgType = Message.PLAY_VIDEO;
 		}
 		else // playing
 		{
@@ -135,8 +137,10 @@ public class ServerCMDController : MonoBehaviour {
 			_playBtnString = "PLAY";
 			isPlaying = false;
 			_cmd = ClientCommandMgr.Command.PAUSE;
+			msgType = Message.PAUSE_VIDEO;
 		}
-		_msg = _cmd.ToString ();
+//		_msg = _cmd.ToString ();
+		_msg = Message.Pack (msgType);
 	}
 
 	public void OnClickStop()
@@ -145,7 +149,8 @@ public class ServerCMDController : MonoBehaviour {
 		_playBtnString = "PLAY";
 		isPlaying = false;
 		_cmd = ClientCommandMgr.Command.STOP;
-		_msg = _cmd.ToString ();
+//		_msg = _cmd.ToString ();
+		_msg = Message.Pack (Message.STOP_VIDEO);
 	}
 
 	public void OnClickReplay()
@@ -154,7 +159,8 @@ public class ServerCMDController : MonoBehaviour {
 		_playBtnString = "PAUSE";
 		isPlaying = true;
 		_cmd = ClientCommandMgr.Command.REPLAY;
-		_msg = _cmd.ToString ();
+//		_msg = _cmd.ToString ();
+		_msg = Message.Pack (Message.REPLAY_VIDEO);
 	}
 
 	public void OnClickSwithVideoClip(int index)
@@ -164,7 +170,8 @@ public class ServerCMDController : MonoBehaviour {
 		isPlaying = false;
 		_cmd = ClientCommandMgr.Command.SWITCH_CLIP;
 		_videoIndex = index;
-		_msg = _cmd.ToString () + "|" + _videoIndex.ToString ();
+//		_msg = _cmd.ToString () + "|" + _videoIndex.ToString ();
+		_msg = Message.Pack (Message.SWITCH_VIDEO_CLIP, index.ToString ());
 	}
 
 	public void OnClickSwithVideoUrl(string nameVideo)
@@ -174,7 +181,8 @@ public class ServerCMDController : MonoBehaviour {
 		isPlaying = false;
 		_cmd = ClientCommandMgr.Command.SWITCH_URL;
 		_nameVideo = nameVideo;
-		_msg = _cmd.ToString () + "|" + _nameVideo;
+//		_msg = _cmd.ToString () + "|" + _nameVideo;
+		_msg = Message.Pack (Message.SWITCH_VIDEO_URL, nameVideo);
 	}
 
 	void SetText(string _confirmText, string _status)
