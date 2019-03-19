@@ -300,7 +300,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	/// </summary> 	
 	public void ConnectToTcpServer ()
 	{
-        string ipString = IPAddressInput.Instance.ipAddress;
+        ipString = IPAddressInput.Instance.ipAddress;
 		print ("Connect to Server");
 		try {  			
 			clientReceiveThread = new Thread (new ThreadStart(StartClient)); 			
