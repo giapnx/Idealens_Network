@@ -33,10 +33,13 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 
 	Byte[] bytes = new Byte[1024];
 
-	Socket client;
+	static Socket client;
+    static string ipString = null;
 
 	public void TryStartClient()
 	{
+        if (ipString == null) return;
+        
 		StartClient ();
 		StartCoroutine (CheckTryConnect (3));
 	}
@@ -54,20 +57,20 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		// Connect to a remote device.
 		try 
 		{
-			string ipString = IPAddressInput.Instance.ipAddress;
-			IPAddress ipAddress = IPAddress.Parse (ipString);
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress, 8052);
+			// string ipString = IPAddressInput.Instance.ipAddress;
 
 			// Create a TCP/IP socket.
-			client = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
 			// Connect to the remote endpoint.
-			client.BeginConnect (remoteEP, new AsyncCallback(ConnectCallBack), client);
+			client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 
 		}
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            Thread.Sleep(10 * 1000);
+            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 		}
 	}
 
@@ -75,9 +78,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	{
 		try 
 		{
-			// Retrieve the socket from the state object.
-			Socket client = (Socket)ar.AsyncState;
-
 			// Complete the connection.
 			client.EndConnect (ar);
 
@@ -88,6 +88,8 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            Thread.Sleep(10 * 1000);
+            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 		}
 	}
 
@@ -119,7 +121,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 			// Receive the state object and the client socket
 			// from the asynchronous state object.
 			StateObject state = (StateObject)ar.AsyncState;
-			Socket client = state.workSocket;
 
 			// Read data from the remote device.
 			int bytesRead = client.EndReceive (ar);
@@ -175,6 +176,8 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            Thread.Sleep(10 * 1000);
+            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 		}
 	}
 
@@ -186,7 +189,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		try
 		{
 			StateObject state = (StateObject)ar.AsyncState;
-			Socket client = state.workSocket;
 
 			// Read data from the remote device.
 			int bytesRead = client.EndReceive (ar);
@@ -219,6 +221,8 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            Thread.Sleep(10 * 1000);
+            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 		}
 	}
 
@@ -230,7 +234,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		try 
 		{
 			StateObject state = (StateObject)ar.AsyncState;
-			Socket client = state.workSocket;
 
 			// Read data from the remote device.
 			int bytesRead = client.EndReceive (ar);
@@ -265,7 +268,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		} 
 		catch (Exception ex) 
 		{
-			
+			Debug.Log(ex);
+            Thread.Sleep(10 * 1000);
+            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 		}
 	}
 
@@ -280,8 +285,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	{
 		try 
 		{
-			// Retrieve the socket from the state object.
-			Socket client = (Socket)ar.AsyncState;
 
 			// Complete sendung the data to the remote device.
 			int byteSent = client.EndSend (ar);
@@ -297,6 +300,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	/// </summary> 	
 	public void ConnectToTcpServer ()
 	{
+        string ipString = IPAddressInput.Instance.ipAddress;
 		print ("Connect to Server");
 		try {  			
 			clientReceiveThread = new Thread (new ThreadStart(StartClient)); 			

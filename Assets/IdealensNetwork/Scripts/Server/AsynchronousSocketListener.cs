@@ -41,12 +41,6 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		StartListening();
 	}
 
-	// Update is called once per frame
-//	void Update ()
-//	{
-//		
-//	}
-
 	List<Socket> activeConnections = new List<Socket>();
 
 	public void StartListening()
@@ -61,6 +55,7 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		try {
 			listener.Bind(localEndPoint);
 			listener.Listen(10);
+
 
 			// Start an asynchronous socket to listen for connections.
 			listener.BeginAccept( new AsyncCallback(AcceptCallback),listener );
@@ -117,7 +112,8 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		// Create the state object.
 		StateObject state = new StateObject();
 		state.workSocket = handler;
-		handler.BeginReceive( state.buffer, 0, StateObject.BufferSize, 0,
+        state.workSocket.SendTimeout = 10 * 1000;
+		state.workSocket.BeginReceive( state.buffer, 0, StateObject.BufferSize, 0,
 			new AsyncCallback(ReadCallback), state);
 
 		//確立した接続のオブジェクトをリストに追加
@@ -359,19 +355,16 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 	}
 
 	private void SendCallback(IAsyncResult ar) {
+		// Retrieve the socket from the state object.
+		Socket handler = (Socket) ar.AsyncState;
 		try {
-			// Retrieve the socket from the state object.
-			Socket handler = (Socket) ar.AsyncState;
 
 			// Complete sending the data to the remote device.
 			int bytesSent = handler.EndSend(ar);
 			Debug.LogFormat("Sent {0} bytes to client.", bytesSent);
 
-			//この２つはセットでつかるらしい
-			//handler.Shutdown(SocketShutdown.Both);
-			//handler.Close();
-
 		} catch (Exception e) {
+            activeConnections.Remove(handler);
 			Debug.Log(e.ToString());
 		}
 	}
