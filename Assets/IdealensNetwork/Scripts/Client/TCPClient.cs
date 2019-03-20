@@ -24,6 +24,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	public Queue<byte[]> receivePackVideo = new Queue<byte[]>();
 	static object _door = new object ();
 	public bool OnReceiveDone = true;
+    const int RECONNECT_ATTEMPTS = 1;
+    int reconnectionsDone = 0;
+    public InputField IPField;
 
 	// Use this for initialization
 	void Start () 
@@ -38,9 +41,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 
 	public void TryStartClient()
 	{
-        if (ipString == null) return;
-        
-		StartClient ();
+		ConnectToTcpServer();
 		StartCoroutine (CheckTryConnect (3));
 	}
 
@@ -57,8 +58,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		// Connect to a remote device.
 		try 
 		{
-			// string ipString = IPAddressInput.Instance.ipAddress;
-
 			// Create a TCP/IP socket.
 			client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -70,8 +69,16 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		{
 			Debug.Log (ex);
             client.Close();
-            Thread.Sleep(10 * 1000);
-            StartClient();
+            if (reconnectionsDone >= RECONNECT_ATTEMPTS)
+            {
+                MainThread.Call(ActivePanelConnect);
+            }
+            else
+            {
+                Thread.Sleep(10 * 1000);
+                ++reconnectionsDone;
+                StartClient();
+            }
 		}
 	}
 
@@ -81,6 +88,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		{
 			// Complete the connection.
 			client.EndConnect (ar);
+            reconnectionsDone = 0;
 
 			if (client.Connected) {	MainThread.Call (OnConnectedToServer);}
 
@@ -89,9 +97,17 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
-            client.Close();
-            Thread.Sleep(10 * 1000);
-            StartClient();
+            if (reconnectionsDone >= RECONNECT_ATTEMPTS)
+            {
+                Debug.Log("re-enabling connect panel");
+                MainThread.Call(ActivePanelConnect);
+            }
+            else
+            {
+                Thread.Sleep(10 * 1000);
+                ++reconnectionsDone;
+                StartClient();
+            }
 		}
 	}
 
@@ -431,6 +447,8 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 
 	void ActivePanelConnect()
 	{
+        CanvasUI.gameObject.SetActive (true);
+		Anchor.SetActive (true);
 		ConnectPanel.SetActive (true);
 		TryConnectPanel.SetActive (false);
 	}
