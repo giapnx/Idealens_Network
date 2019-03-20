@@ -262,7 +262,12 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 	{
 		foreach (Socket each in activeConnections) 
 		{
-			Send (each, byteData);
+            try {
+			    Send (each, byteData);
+            } catch (Exception e) {
+                Debug.Log(e);
+                activeConnections.Remove(each);
+            }
 		}
 	}
 

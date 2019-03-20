@@ -69,8 +69,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            client.Close();
             Thread.Sleep(10 * 1000);
-            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
+            StartClient();
 		}
 	}
 
@@ -88,8 +89,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            client.Close();
             Thread.Sleep(10 * 1000);
-            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
+            StartClient();
 		}
 	}
 
@@ -176,8 +178,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            client.Close();
             Thread.Sleep(10 * 1000);
-            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
+            StartClient();
 		}
 	}
 
@@ -221,8 +224,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log (ex);
+            client.Close();
             Thread.Sleep(10 * 1000);
-            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
+            StartClient();
 		}
 	}
 
@@ -269,8 +273,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		catch (Exception ex) 
 		{
 			Debug.Log(ex);
+            client.Close();
             Thread.Sleep(10 * 1000);
-            client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
+            StartClient();
 		}
 	}
 
