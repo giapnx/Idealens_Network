@@ -185,7 +185,19 @@ public class ServerCMDController : SingletonMonoBehaviour<ServerCMDController> {
 		_msg = Message.Pack (Message.SWITCH_VIDEO_URL, nameVideo);
 	}
 
-	void SetText(string _confirmText, string _status)
+    /// <summary>
+    ///Test: Send cmd disconnect to First client
+    /// </summary>
+    public void OnClickDisconnectFirst()
+    {
+        _cmd = ClientCommandMgr.Command.DISCONNECT;
+        _msg = Message.Pack(Message.DISCONNECT);
+
+        AsynchronousSocketListener.Instance.SendToFirst(_msg);
+    }
+
+
+    void SetText(string _confirmText, string _status)
 	{
 		SetConfirmText (_confirmText);
 		_statusString = _status;

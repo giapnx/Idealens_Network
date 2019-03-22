@@ -25,8 +25,9 @@ public class Message
 	public const byte SWITCH_VIDEO_URL 	= 0x35;
 	public const byte GET_LIST_VIDEO 	= 0x36;
 	public const byte SEND_VIDEO 		= 0x37;
+    public const byte DISCONNECT    = 0x37;
 
-	public static byte[] Pack(byte msgType, string msgData)
+    public static byte[] Pack(byte msgType, string msgData)
 	{
 		byte[] msgDataByte = System.Text.Encoding.ASCII.GetBytes(msgData);
 //		byte[] lengthOfMsg = BitConverter.GetBytes (msgDataByte.Length); // 4 bytes

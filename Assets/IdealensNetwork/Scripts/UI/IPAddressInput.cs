@@ -61,11 +61,16 @@ public class IPAddressInput : SingletonMonoBehaviour<IPAddressInput> {
 
 			}
 		}
+        else
+        {
+            Debug.LogError("Not exist IP file !");
+        }
 
+        // Set default values
 		octets [0] = 192;
 		octets [1] = 168;
 		octets [2] = 1;
-		octets [3] = 97;
+		octets [3] = 1;
 
 	}
 

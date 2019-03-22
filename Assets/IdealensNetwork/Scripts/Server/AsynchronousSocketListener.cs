@@ -54,7 +54,7 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		// Bind the socket to the local endpoint and listen for incoming connections.
 		try {
 			listener.Bind(localEndPoint);
-			listener.Listen(10);
+			listener.Listen(20);
 
 
 			// Start an asynchronous socket to listen for connections.
@@ -271,6 +271,21 @@ public class AsynchronousSocketListener : SingletonMonoBehaviour<AsynchronousSoc
 		}
 	}
 
+    public void SendToFirst(byte[] byteData)
+    {
+        if (activeConnections.Count > 0)
+        {
+            try
+            {
+                Send(activeConnections[0], byteData);
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+            }
+        }
+    }
+
 	private void Send(Socket handler, string data)
 	{
 		// Convert the string data to byte data using ASCII encoding.
@@ -418,7 +433,8 @@ public enum MessageType
 	VIDEO_STOP,
 	LIST_VIDEO,
 	GET_LIST_VIDEO,
-	SEND_VIDEO
+	SEND_VIDEO,
+    DISCONNECT
 }
 
 // State object for reading client data asynchronously

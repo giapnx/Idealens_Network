@@ -24,20 +24,38 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	public Queue<byte[]> receivePackVideo = new Queue<byte[]>();
 	static object _door = new object ();
 	public bool OnReceiveDone = true;
+    public float timeWaitConnect = 10;
     const int RECONNECT_ATTEMPTS = 1;
     int reconnectionsDone = 0;
-    public InputField IPField;
+    //public InputField IPField;
 
-	// Use this for initialization
-	void Start () 
+    Byte[] bytes = new Byte[1024];
+
+    static Socket client;
+    static string ipString = null;
+
+    // Use this for initialization
+    void Start () 
 	{
 		TryStartClient ();
 	}
 
-	Byte[] bytes = new Byte[1024];
-
-	static Socket client;
-    static string ipString = null;
+    // Test
+    public void DisconnectClient()
+    {
+        if (client != null && client.Connected)
+        {
+            try
+            {
+                client.Close();
+                Debug.Log("Close socket !");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+            }
+        }
+    }
 
 	public void TryStartClient()
 	{
@@ -65,7 +83,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 			client.BeginConnect (ipString, 8052, new AsyncCallback(ConnectCallBack), client);
 
 		}
-		catch (Exception ex) 
+		catch (Exception ex)
 		{
 			Debug.Log (ex);
             client.Close();
@@ -75,7 +93,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
             }
             else
             {
-                Thread.Sleep(10 * 1000);
+                Thread.Sleep((int)(timeWaitConnect * 1000));
                 ++reconnectionsDone;
                 StartClient();
             }
@@ -96,7 +114,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		} 
 		catch (Exception ex) 
 		{
-			Debug.Log (ex);
+			Debug.Log ("ConnectCallBack: " + ex);
             if (reconnectionsDone >= RECONNECT_ATTEMPTS)
             {
                 Debug.Log("re-enabling connect panel");
@@ -104,7 +122,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
             }
             else
             {
-                Thread.Sleep(10 * 1000);
+                Thread.Sleep((int)(timeWaitConnect * 1000));
                 ++reconnectionsDone;
                 StartClient();
             }
@@ -125,7 +143,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		} 
 		catch (Exception ex) 
 		{
-			Debug.Log (ex);
+			Debug.Log ("Receive: " + ex);
 		}
 	}
 
@@ -193,9 +211,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		} 
 		catch (Exception ex) 
 		{
-			Debug.Log (ex);
+			Debug.Log ("ReceiveCallBack: " + ex);
             client.Close();
-            Thread.Sleep(10 * 1000);
+            Thread.Sleep((int)(timeWaitConnect * 1000));
             StartClient();
 		}
 	}
@@ -239,9 +257,9 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		} 
 		catch (Exception ex) 
 		{
-			Debug.Log (ex);
+			Debug.Log ("ReceiveToEndCallBack: " + ex);
             client.Close();
-            Thread.Sleep(10 * 1000);
+            Thread.Sleep((int)(timeWaitConnect * 1000));
             StartClient();
 		}
 	}
@@ -290,7 +308,7 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 		{
 			Debug.Log(ex);
             client.Close();
-            Thread.Sleep(10 * 1000);
+            Thread.Sleep((int)(timeWaitConnect * 1000));
             StartClient();
 		}
 	}
@@ -306,7 +324,6 @@ public class TCPClient : SingletonMonoBehaviour<TCPClient> {
 	{
 		try 
 		{
-
 			// Complete sendung the data to the remote device.
 			int byteSent = client.EndSend (ar);
 		} 
