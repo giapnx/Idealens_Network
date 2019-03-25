@@ -12,12 +12,12 @@ public class ServerVideoProgressMgr : SingletonMonoBehaviour<ServerVideoProgress
 	float lengthOfVideo;
 
 	float _countTime;
-	ServerVideoPlayer PlayVideoInstance;
+	ServerVideoPlayer VideoPlayerInstance;
 
 	// Use this for initialization
 	void Start () 
 	{
-		PlayVideoInstance = ServerVideoPlayer.Instance;
+		VideoPlayerInstance = ServerVideoPlayer.Instance;
 //		SetDefault ();
 	}
 
@@ -33,7 +33,7 @@ public class ServerVideoProgressMgr : SingletonMonoBehaviour<ServerVideoProgress
 
 	void Update()
 	{
-		if (PlayVideoInstance.videoPlayer.isPlaying) 
+		if (VideoPlayerInstance.videoPlayer.isPlaying) 
 		{
 			_countTime += Time.deltaTime;
 
@@ -43,7 +43,8 @@ public class ServerVideoProgressMgr : SingletonMonoBehaviour<ServerVideoProgress
 	
 	public void SetDefault()
 	{
-		lengthOfVideo = (float)ServerVideoPlayer.Instance.videoPlayer.clip.length;
+
+		lengthOfVideo = (float)(VideoPlayerInstance.videoPlayer.frameCount / VideoPlayerInstance.videoPlayer.frameRate);
 
 		timeText.text = "0:00";
 		TimeSpan time = TimeSpan.FromSeconds (lengthOfVideo);

@@ -4,4 +4,10 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/IdealensNetwork/Scenes/Controller.unity
+    guid: f61b4e2483f7ab54f9fc7a9be3897fb5
+  - enabled: 0
+    path: Assets/IdealensNetwork/Scenes/Idealens.unity
+    guid: 5c4f572c63e184472b993498aae88ded

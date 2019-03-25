@@ -27,6 +27,7 @@ public class ClientCommandMgr : SingletonMonoBehaviour<ClientCommandMgr>
     event Action OnUserPressReplayHandler;
     event Action<int> OnUserPressSwitchVideoClipHandler;
     event Action<string> OnUserPressSwitchVideoUrlHandler;
+    event Action<double> OnUserPressSeekHandler;
 
     public void RegisterUsePressPlayEvent(Action callback) { OnUserPressPlayHandler += callback; }
     public void RegisterUsePressPauseEvent(Action callback) { OnUserPressPauseHandler += callback; }
@@ -34,6 +35,7 @@ public class ClientCommandMgr : SingletonMonoBehaviour<ClientCommandMgr>
     public void RegisterUsePressReplayEvent(Action callback) { OnUserPressReplayHandler += callback; }
     public void RegisterUsePressSwitchVideoClipEvent(Action<int> callback) { OnUserPressSwitchVideoClipHandler += callback; }
     public void RegisterUsePressSwitchVideoUrlEvent(Action<string> callback) { OnUserPressSwitchVideoUrlHandler += callback; }
+    public void RegisterUsePressSeekEvent(Action<double> callback) { OnUserPressSeekHandler += callback; }
     #endregion
 
     Command receivedCMD = Command.NONE;
@@ -119,7 +121,6 @@ public class ClientCommandMgr : SingletonMonoBehaviour<ClientCommandMgr>
                 OnUserPressReplayHandler.Invoke();
                 TCPClient.Instance.SendMessageToServer(Message.Pack(Message.CLIENT_PLAY_VIDEO));
                 //			timeVideoCount = 0;
-                print("Replay !!");
 
                 break;
 
@@ -167,6 +168,47 @@ public class ClientCommandMgr : SingletonMonoBehaviour<ClientCommandMgr>
 
             case Message.DISCONNECT:
                 TCPClient.Instance.DisconnectClient();
+                break;
+
+            case Message.UPDATE_VIDEO:
+                try
+                {
+                    string[] _recieveMsg = subMsg.Split('|');
+                    VideoState videoState = (VideoState)Enum.Parse(typeof(VideoState), _recieveMsg[0]);
+                    double videoTime = Double.Parse(_recieveMsg[1]);
+
+                    switch (videoState)
+                    {
+                        case VideoState.PLAYING:
+                            if (OnUserPressSeekHandler != null)
+                            {
+                                OnUserPressSeekHandler(videoTime);
+                            }
+                            
+                            if (OnUserPressPlayHandler != null) { OnUserPressPlayHandler.Invoke(); }
+                            TCPClient.Instance.SendMessageToServer(Message.Pack(Message.CLIENT_PLAY_VIDEO));
+                            break;
+                        case VideoState.PAUSED:
+                            if (OnUserPressSeekHandler != null)
+                            {
+                                OnUserPressSeekHandler(videoTime);
+                            }
+
+                            OnUserPressPauseHandler.Invoke();
+                            TCPClient.Instance.SendMessageToServer(Message.Pack(Message.CLIENT_PAUSE_VIDEO));
+                            break;
+                        case VideoState.STOPPED:
+                            OnUserPressStopHandler.Invoke();
+                            TCPClient.Instance.SendMessageToServer(Message.Pack(Message.CLIENT_STOP_VIDEO));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError(ex);
+                }
                 break;
 
             default: // None

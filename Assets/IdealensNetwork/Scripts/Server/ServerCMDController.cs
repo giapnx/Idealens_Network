@@ -1,228 +1,241 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using System;
 
 public class ServerCMDController : SingletonMonoBehaviour<ServerCMDController>
 {
 
-  #region UI
-  public Button PlayBtn;
-  public Text playBtnText;
-  string _playBtnString;
+    #region UI
+    public Button PlayBtn;
+    public Text playBtnText;
+    string _playBtnString;
 
-  public Text StatusText;
-  string _statusString;
+    public Text StatusText;
+    string _statusString;
 
-  public GameObject ConfirmPopup;
-  public Text confirmText;
-  //	public Button ConfirmBtn;
-  #endregion
+    public GameObject ConfirmPopup;
+    public Text confirmText;
+    //	public Button ConfirmBtn;
+    #endregion
 
-  #region STRING
-  public const string CONFIRM_PLAY_TEXT = "DO YOU LIKE TO PLAY VIDEO?";
-  public const string CONFIRM_PAUSE_TEXT = "DO YOU LIKE TO PAUSE VIDEO?";
-  public const string CONFIRM_STOP_TEXT = "DO YOU LIKE TO STOP VIDEO?";
-  public const string CONFIRM_REPLAY_TEXT = "DO YOU LIKE TO REPLAY VIDEO?";
-  public const string CONFIRM_SWITCH_TEXT = "DO YOU LIKE TO SWITCH VIDEO?";
+    #region STRING
+    public const string CONFIRM_PLAY_TEXT = "DO YOU LIKE TO PLAY VIDEO?";
+    public const string CONFIRM_PAUSE_TEXT = "DO YOU LIKE TO PAUSE VIDEO?";
+    public const string CONFIRM_STOP_TEXT = "DO YOU LIKE TO STOP VIDEO?";
+    public const string CONFIRM_REPLAY_TEXT = "DO YOU LIKE TO REPLAY VIDEO?";
+    public const string CONFIRM_SWITCH_TEXT = "DO YOU LIKE TO SWITCH VIDEO?";
 
-  public const string PLAYING_TEXT = "PLAYING";
-  public const string PAUSED_TEXT = "PAUSED";
-  public const string STOPED_TEXT = "STOPED";
-  public const string SWITCH_TEXT = "SWITCH";
-  #endregion
+    public const string PLAYING_TEXT = "PLAYING";
+    public const string PAUSED_TEXT = "PAUSED";
+    public const string STOPED_TEXT = "STOPED";
+    public const string SWITCH_TEXT = "SWITCH";
+    #endregion
 
-  bool isPlaying;
-  public byte[] _msg;
-  int _videoIndex = 0;
-  String _nameVideo;
+    bool isPlaying;
+    public byte[] _msg;
+    int _videoIndex = 0;
+    String _nameVideo;
 
-  ClientCommandMgr.Command _cmd;
-  byte msgType;
+    ClientCommandMgr.Command _cmd;
+    byte msgType;
 
-  // Use this for initialization
-  void Start()
-  {
-    //		CommandMgrInstante = CommandMgr.Instance;
-    SetDefault();
-    ResetProgressBar();
-  }
-
-  void OnEnable()
-  {
-    ServerVideoPlayer.PreloadCompleted += SetDefault;
-    ServerVideoPlayer.PreloadCompleted += ResetProgressBar;
-  }
-
-  void OnDisable()
-  {
-    ServerVideoPlayer.PreloadCompleted -= SetDefault;
-    ServerVideoPlayer.PreloadCompleted -= ResetProgressBar;
-  }
-
-  // Update is called once per frame
-  void Update()
-  {
-
-  }
-
-  public void SetDefault()
-  {
-    isPlaying = false;
-    playBtnText.text = "PLAY";
-    SetStatusText("---");
-  }
-
-  void ResetProgressBar()
-  {
-    ServerVideoProgressMgr.Instance.SetCountTime(0);
-    ServerVideoProgressMgr.Instance.SetProgressBar();
-  }
-
-  public void OnClickConfirm()
-  {
-    SetStatusText(_statusString);
-    playBtnText.text = _playBtnString;
-
-    AsynchronousSocketListener.Instance.SendAll(_msg);
-    print(System.Text.Encoding.ASCII.GetString(_msg));
-    switch (_cmd)
+    // Use this for initialization
+    void Start()
     {
-      case ClientCommandMgr.Command.PLAY:
-        ServerVideoPlayer.Instance.OnClickPlay();
-        break;
-
-      case ClientCommandMgr.Command.PAUSE:
-        ServerVideoPlayer.Instance.OnClickPause();
-        break;
-
-      case ClientCommandMgr.Command.STOP:
-        ServerVideoPlayer.Instance.OnClickStop();
+        //		CommandMgrInstante = CommandMgr.Instance;
+        SetDefault();
         ResetProgressBar();
-        break;
-
-      case ClientCommandMgr.Command.REPLAY:
-        ServerVideoPlayer.Instance.OnClickReplay();
-        ResetProgressBar();
-        break;
-
-      case ClientCommandMgr.Command.SWITCH_CLIP:
-        ServerVideoPlayer.Instance.OnClickSwitchVideoClip(_videoIndex);
-        break;
-
-      case ClientCommandMgr.Command.SWITCH_URL:
-        ServerVideoPlayer.Instance.OnClickSwitchVideoUrl(_nameVideo);
-        break;
-
-      default:
-        break;
     }
-  }
 
-  public void OnClickPlay()
-  {
-    if (!isPlaying)
+    void OnEnable()
     {
-      // Play
-      SetText(CONFIRM_PLAY_TEXT, PLAYING_TEXT);
-      _playBtnString = "PAUSE";
-      isPlaying = true;
-      _cmd = ClientCommandMgr.Command.PLAY;
-      msgType = Message.PLAY_VIDEO;
+        ServerVideoPlayer.PreloadCompleted += SetDefault;
+        ServerVideoPlayer.PreloadCompleted += ResetProgressBar;
     }
-    else // playing
+
+    void OnDisable()
     {
-      // Pause
-      SetText(CONFIRM_PAUSE_TEXT, PAUSED_TEXT);
-      _playBtnString = "PLAY";
-      isPlaying = false;
-      _cmd = ClientCommandMgr.Command.PAUSE;
-      msgType = Message.PAUSE_VIDEO;
+        ServerVideoPlayer.PreloadCompleted -= SetDefault;
+        ServerVideoPlayer.PreloadCompleted -= ResetProgressBar;
     }
-    _msg = Message.Pack(msgType);
-  }
 
-  public void OnClickStop()
-  {
-    SetText(CONFIRM_STOP_TEXT, STOPED_TEXT);
-    _playBtnString = "PLAY";
-    isPlaying = false;
-    _cmd = ClientCommandMgr.Command.STOP;
-    //		_msg = _cmd.ToString ();
-    _msg = Message.Pack(Message.STOP_VIDEO);
-  }
-
-  public void OnClickReplay()
-  {
-    SetText(CONFIRM_REPLAY_TEXT, PLAYING_TEXT);
-    _playBtnString = "PAUSE";
-    isPlaying = true;
-    _cmd = ClientCommandMgr.Command.REPLAY;
-    //		_msg = _cmd.ToString ();
-    _msg = Message.Pack(Message.REPLAY_VIDEO);
-  }
-
-  public void OnClickSwithVideoClip(int index)
-  {
-    SetText(CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
-    _playBtnString = "PLAY";
-    isPlaying = false;
-    _cmd = ClientCommandMgr.Command.SWITCH_CLIP;
-    _videoIndex = index;
-    _msg = Message.Pack(Message.SWITCH_VIDEO_CLIP, index.ToString());
-  }
-
-  public void OnClickSwithVideoUrl(string nameVideo)
-  {
-    SetText(CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
-    _playBtnString = "PLAY";
-    isPlaying = false;
-    _cmd = ClientCommandMgr.Command.SWITCH_URL;
-    _nameVideo = nameVideo;
-    _msg = Message.Pack(Message.SWITCH_VIDEO_URL, nameVideo);
-  }
-
-  public void SendCurrentInfo()
-  {
-    if (ServerVideoPlayer.Instance.currentVideoLocate == VideoLocate.INTERNAL)
+    // Update is called once per frame
+    void Update()
     {
-      _msg = Message.Pack(Message.SWITCH_VIDEO_CLIP, ServerVideoPlayer.Instance.videoClipIndex.ToString());
+
     }
-    else
+
+    public void SetDefault()
     {
-      _msg = Message.Pack(Message.SWITCH_VIDEO_URL, ServerVideoPlayer.Instance.videoUrlName);
+        isPlaying = false;
+        playBtnText.text = "PLAY";
+        SetStatusText("---");
+    }
+
+    void ResetProgressBar()
+    {
+        ServerVideoProgressMgr.Instance.SetCountTime(0);
+        ServerVideoProgressMgr.Instance.SetProgressBar();
+    }
+
+    public void OnClickConfirm()
+    {
+        SetStatusText(_statusString);
+        playBtnText.text = _playBtnString;
+
+        AsynchronousSocketListener.Instance.SendAll(_msg);
+        print(System.Text.Encoding.ASCII.GetString(_msg));
+        switch (_cmd)
+        {
+            case ClientCommandMgr.Command.PLAY:
+                ServerVideoPlayer.Instance.OnClickPlay();
+                break;
+
+            case ClientCommandMgr.Command.PAUSE:
+                ServerVideoPlayer.Instance.OnClickPause();
+                break;
+
+            case ClientCommandMgr.Command.STOP:
+                ServerVideoPlayer.Instance.OnClickStop();
+                ResetProgressBar();
+                break;
+
+            case ClientCommandMgr.Command.REPLAY:
+                ServerVideoPlayer.Instance.OnClickReplay();
+                ResetProgressBar();
+                break;
+
+            case ClientCommandMgr.Command.SWITCH_CLIP:
+                ServerVideoPlayer.Instance.OnClickSwitchVideoClip(_videoIndex);
+                break;
+
+            case ClientCommandMgr.Command.SWITCH_URL:
+                ServerVideoPlayer.Instance.OnClickSwitchVideoUrl(_nameVideo);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    public void OnClickPlay()
+    {
+        if (!isPlaying)
+        {
+            // Play
+            SetText(CONFIRM_PLAY_TEXT, PLAYING_TEXT);
+            _playBtnString = "PAUSE";
+            isPlaying = true;
+            _cmd = ClientCommandMgr.Command.PLAY;
+            msgType = Message.PLAY_VIDEO;
+        }
+        else // playing
+        {
+            // Pause
+            SetText(CONFIRM_PAUSE_TEXT, PAUSED_TEXT);
+            _playBtnString = "PLAY";
+            isPlaying = false;
+            _cmd = ClientCommandMgr.Command.PAUSE;
+            msgType = Message.PAUSE_VIDEO;
+        }
+        _msg = Message.Pack(msgType);
+    }
+
+    public void OnClickStop()
+    {
+        SetText(CONFIRM_STOP_TEXT, STOPED_TEXT);
+        _playBtnString = "PLAY";
+        isPlaying = false;
+        _cmd = ClientCommandMgr.Command.STOP;
+        //		_msg = _cmd.ToString ();
+        _msg = Message.Pack(Message.STOP_VIDEO);
+    }
+
+    public void OnClickReplay()
+    {
+        SetText(CONFIRM_REPLAY_TEXT, PLAYING_TEXT);
+        _playBtnString = "PAUSE";
+        isPlaying = true;
+        _cmd = ClientCommandMgr.Command.REPLAY;
+        //		_msg = _cmd.ToString ();
+        _msg = Message.Pack(Message.REPLAY_VIDEO);
+    }
+
+    public void OnClickSwithVideoClip(int index)
+    {
+        SetText(CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
+        _playBtnString = "PLAY";
+        isPlaying = false;
+        _cmd = ClientCommandMgr.Command.SWITCH_CLIP;
+        _videoIndex = index;
+        _msg = Message.Pack(Message.SWITCH_VIDEO_CLIP, index.ToString());
+    }
+
+    public void OnClickSwithVideoUrl(string nameVideo)
+    {
+        SetText(CONFIRM_SWITCH_TEXT, SWITCH_TEXT);
+        _playBtnString = "PLAY";
+        isPlaying = false;
+        _cmd = ClientCommandMgr.Command.SWITCH_URL;
+        _nameVideo = nameVideo;
+        _msg = Message.Pack(Message.SWITCH_VIDEO_URL, nameVideo);
+    }
+
+    public void SendCurrentInfo(System.Net.Sockets.Socket client, float waitTime)
+    {
+        StartCoroutine(SendCurrentInfoCo(client, waitTime));
+    }
+
+    IEnumerator SendCurrentInfoCo(System.Net.Sockets.Socket client, float waitTime)
+    {
+        // 1. switch video
+        if (ServerVideoPlayer.Instance.currentVideoLocate == VideoLocate.INTERNAL)
+        {
+            _msg = Message.Pack(Message.SWITCH_VIDEO_CLIP, ServerVideoPlayer.Instance.videoClipIndex.ToString());
+        }
+        else
+        {
+            _msg = Message.Pack(Message.SWITCH_VIDEO_URL, ServerVideoPlayer.Instance.videoUrlName);
+        }
+        AsynchronousSocketListener.Instance.Send(client, _msg);
+
+        yield return new WaitForSeconds(waitTime);
+
+        // 2. send videoState and videoTime to client
+        string _msg2 = "";
+        _msg2 = ServerVideoPlayer.Instance.currentVideoState.ToString() + "|" + ServerVideoPlayer.Instance.videoPlayer.time;
+
+        AsynchronousSocketListener.Instance.Send(client, Message.Pack(Message.UPDATE_VIDEO, _msg2));
+
+    }
+
+    /// <summary>
+    ///Test: Send cmd disconnect to First client
+    /// </summary>
+    public void OnClickDisconnectFirst()
+    {
+        _cmd = ClientCommandMgr.Command.DISCONNECT;
+        _msg = Message.Pack(Message.DISCONNECT);
+
+        AsynchronousSocketListener.Instance.SendToFirst(_msg);
     }
 
 
-  }
+    void SetText(string _confirmText, string _status)
+    {
+        SetConfirmText(_confirmText);
+        _statusString = _status;
+        ConfirmPopup.SetActive(true);
+    }
 
-  /// <summary>
-  ///Test: Send cmd disconnect to First client
-  /// </summary>
-  public void OnClickDisconnectFirst()
-  {
-    _cmd = ClientCommandMgr.Command.DISCONNECT;
-    _msg = Message.Pack(Message.DISCONNECT);
+    void SetStatusText(string str)
+    {
+        StatusText.text = str;
+    }
 
-    AsynchronousSocketListener.Instance.SendToFirst(_msg);
-  }
-
-
-  void SetText(string _confirmText, string _status)
-  {
-    SetConfirmText(_confirmText);
-    _statusString = _status;
-    ConfirmPopup.SetActive(true);
-  }
-
-  void SetStatusText(string str)
-  {
-    StatusText.text = str;
-  }
-
-  void SetConfirmText(string str)
-  {
-    confirmText.text = str;
-  }
+    void SetConfirmText(string str)
+    {
+        confirmText.text = str;
+    }
 }
