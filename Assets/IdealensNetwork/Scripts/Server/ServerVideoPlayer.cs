@@ -4,164 +4,186 @@ using UnityEngine;
 using UnityEngine.Video;
 using System.IO;
 
-public class ServerVideoPlayer : SingletonMonoBehaviour<ServerVideoPlayer> {
+public class ServerVideoPlayer : SingletonMonoBehaviour<ServerVideoPlayer>
+{
 
-	public VideoClip[] videoGallery;
-	[HideInInspector]
-	public VideoPlayer videoPlayer;
+  public VideoClip[] videoGallery;
+  [HideInInspector]
+  public VideoPlayer videoPlayer;
+  public VideoState videoState = VideoState.STOPPED;
+  enum VideoState
+  {
+    PLAYING,
+    PAUSED,
+    STOPPED
+  }
 
-	private AudioSource audioSource;
-	private bool isLoadCompleted = false;
+  public VideoLocate currentVideoLocate = VideoLocate.INTERNAL;
+	public int videoClipIndex = -1;
+  public string videoUrlName;
 
-	public delegate void DoneLoadVideo();
-	public static event DoneLoadVideo PreloadCompleted;
 
-	// Use this for initialization
-	void Start ()
-	{
-		videoPlayer = GetComponent <VideoPlayer> ();
-		audioSource = GetComponent <AudioSource> ();
+  private AudioSource audioSource;
+  private bool isLoadCompleted = false;
 
-		SetDefault ();
-		OnClickSwitchVideoClip (0);
-//		HandlerUserPressSwitchVideoUrl ("Url_Video1.mp4");
-	}
+  public delegate void DoneLoadVideo();
+  public static event DoneLoadVideo PreloadCompleted;
 
-	void OnDisable()
-	{
-		videoPlayer.prepareCompleted -= PreloadVideoTime;
-	}
-	
-//	 Update is called once per frame
-//	void Update ()
-//	{
-//		
-//	}
+  // Use this for initialization
+  void Start()
+  {
+    videoPlayer = GetComponent<VideoPlayer>();
+    audioSource = GetComponent<AudioSource>();
 
-	/// <summary>
-	/// Set default of value for VideoPlayer.
-	/// </summary>
-	void SetDefault()
-	{
-		videoPlayer.prepareCompleted += PreloadVideoTime;
-		videoPlayer.playOnAwake = false;
+    SetDefault();
+    OnClickSwitchVideoClip(0);
+    //		HandlerUserPressSwitchVideoUrl ("Url_Video1.mp4");
+  }
 
-		//Set Audio Output to AudioSource
-		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+  void OnDisable()
+  {
+    videoPlayer.prepareCompleted -= PreloadVideoTime;
+    videoPlayer.loopPointReached -= EndReached;
+  }
 
-		// Assign the Audio from Video to AudioSource to be played
-		videoPlayer.EnableAudioTrack (0, true);
-		videoPlayer.SetTargetAudioSource (0, audioSource);
-	}
+  //	 Update is called once per frame
+  //	void Update ()
+  //	{
+  //		
+  //	}
 
-	public void OnClickSwitchVideoClip(int index)
-	{
-		if (videoPlayer.isPlaying) { videoPlayer.Stop ();}
+  /// <summary>
+  /// Set default of value for VideoPlayer.
+  /// </summary>
+  void SetDefault()
+  {
+    videoPlayer.prepareCompleted += PreloadVideoTime;
+    videoPlayer.loopPointReached += EndReached;
+    videoPlayer.playOnAwake = false;
 
-		videoPlayer.source = VideoSource.VideoClip;
-		videoPlayer.clip = videoGallery [index];
+    //Set Audio Output to AudioSource
+    videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
 
-//		//Set Audio Output to AudioSource
-//		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
-//
-//		// Assign the Audio from Video to AudioSource to be played
-//		videoPlayer.EnableAudioTrack (0, true);
-//		videoPlayer.SetTargetAudioSource (0, audioSource);
+    // Assign the Audio from Video to AudioSource to be played
+    videoPlayer.EnableAudioTrack(0, true);
+    videoPlayer.SetTargetAudioSource(0, audioSource);
+  }
 
-		StopAllCoroutines ();
-		isLoadCompleted = false;
+  void EndReached(VideoPlayer vp)
+  {
+    videoState = VideoState.STOPPED;
+    print("Video stopped");
+  }
 
-		videoPlayer.Prepare ();
-		StartCoroutine (CheckPrepareVideo());
-	}
+  public void OnClickSwitchVideoClip(int index)
+  {
+    if (videoPlayer.isPlaying)
+    {
+      videoPlayer.Stop();
+      videoState = VideoState.STOPPED;
+    }
 
-	public void OnClickSwitchVideoUrl(string videoName)
-	{
-		string _url = Application.persistentDataPath + "/Video/" + videoName;
-		if (!File.Exists (_url))
-		{
-			print ("Video not exist");
-			return;
-		}
-		if (videoPlayer.isPlaying) { videoPlayer.Stop ();}
+    videoPlayer.source = VideoSource.VideoClip;
+    videoPlayer.clip = videoGallery[index];
 
-		videoPlayer.source = VideoSource.Url;
-		videoPlayer.url = _url;
+    StopAllCoroutines();
+    isLoadCompleted = false;
 
-//		//Set Audio Output to AudioSource
-//		videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
-//
-//		// Assign the Audio from Video to AudioSource to be played
-//		videoPlayer.EnableAudioTrack (0, true);
-//		videoPlayer.SetTargetAudioSource (0, audioSource);
+    videoPlayer.Prepare();
+    StartCoroutine(CheckPrepareVideo());
 
-		StopAllCoroutines ();
-		isLoadCompleted = false;
-		print ("Preparing !");
+		currentVideoLocate = VideoLocate.INTERNAL;
+		videoClipIndex = index;
+  }
 
-		videoPlayer.Prepare ();
-		StartCoroutine (CheckPrepareVideo());
-	}
+  public void OnClickSwitchVideoUrl(string videoName)
+  {
+    string _url = Application.persistentDataPath + "/Video/" + videoName;
+    if (!File.Exists(_url))
+    {
+      print("Video not exist");
+      return;
+    }
+    if (videoPlayer.isPlaying)
+    {
+      videoPlayer.Stop();
+      videoState = VideoState.STOPPED;
+    }
 
-	void PreloadVideoTime(VideoPlayer _vp)
-	{
-		if (!isLoadCompleted)
-			StartCoroutine (PreloadVideoTimeSwitch (_vp));
-	}
+    videoPlayer.source = VideoSource.Url;
+    videoPlayer.url = _url;
 
-	IEnumerator PreloadVideoTimeSwitch(VideoPlayer _vp)
-	{
-		_vp.Play ();
-		yield return new WaitForSeconds (1);
-		_vp.Stop ();
-//		_vp.Prepare ();
+    StopAllCoroutines();
+    isLoadCompleted = false;
+    print("Preparing !");
 
-//		if (PreloadCompleted != null) 
-//		{
-//			PreloadCompleted ();
-//		}
-		isLoadCompleted = true;
-		print ("Loaded!");
-//		print ("Time1: " + _vp.frameCount);
-//		print ("Time2: " + _vp.frameRate);
-	}
+    videoPlayer.Prepare();
+    StartCoroutine(CheckPrepareVideo());
 
-	IEnumerator CheckPrepareVideo()
-	{
-		yield return new WaitForSeconds (0.3f);
-		print ("prepare continue");
-		if (!videoPlayer.isPrepared) {
-			videoPlayer.Prepare ();
-		}
-	}
+		currentVideoLocate = VideoLocate.EXTERNAL;
+		videoUrlName = videoName;
+  }
 
-	public void OnClickPlay()
-	{
-		videoPlayer.Play ();
-	}
+  void PreloadVideoTime(VideoPlayer _vp)
+  {
+    if (!isLoadCompleted)
+      StartCoroutine(PreloadVideoTimeSwitch(_vp));
+  }
 
-	public void OnClickPause()
-	{
-		videoPlayer.Pause ();
-	}
+  IEnumerator PreloadVideoTimeSwitch(VideoPlayer _vp)
+  {
+    _vp.Play();
+    yield return new WaitForSeconds(1);
+    _vp.Stop();
+    isLoadCompleted = true;
+    print("Loaded!");
+  }
 
-	public void OnClickStop()
-	{
-		videoPlayer.Stop ();
-//		videoPlayer.Prepare ();
-	}
+  IEnumerator CheckPrepareVideo()
+  {
+    yield return new WaitForSeconds(0.3f);
+    print("prepare continue");
+    if (!videoPlayer.isPrepared)
+    {
+      videoPlayer.Prepare();
+    }
+  }
 
-	public void OnClickReplay()
-	{
-		StartCoroutine (OnClickReplayCo());
-	}
+  public void OnClickPlay()
+  {
+    videoPlayer.Play();
+    videoState = VideoState.PLAYING;
+  }
 
-	IEnumerator OnClickReplayCo()
-	{
-		videoPlayer.Stop ();
-//		videoPlayer.Prepare ();
-		yield return new WaitForSeconds (1);
-		videoPlayer.Play ();
-	}
+  public void OnClickPause()
+  {
+    videoPlayer.Pause();
+    videoState = VideoState.PAUSED;
+  }
+
+  public void OnClickStop()
+  {
+    videoPlayer.Stop();
+    videoState = VideoState.STOPPED;
+  }
+
+  public void OnClickReplay()
+  {
+    StartCoroutine(OnClickReplayCo());
+  }
+
+  IEnumerator OnClickReplayCo()
+  {
+    videoPlayer.Stop();
+    yield return new WaitForSeconds(1);
+    videoPlayer.Play();
+    videoState = VideoState.PLAYING;
+  }
 
 }
+
+  public enum VideoLocate
+  {
+    INTERNAL,  // play video located by Internal data
+    EXTERNAL	// // play video located by External data (./Video/..)
+  }

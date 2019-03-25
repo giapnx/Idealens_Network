@@ -12,7 +12,6 @@ public class ServerUIController : SingletonMonoBehaviour<ServerUIController>
 //	int selectedValue = -1;
 
 	public Dictionary<string, ItemClientUI> clients = new Dictionary<string, ItemClientUI>();
-	private int countConnectingClients = 0;
 	private Sprite currentVideoStatus;
 
 	void Start()
@@ -62,7 +61,6 @@ public class ServerUIController : SingletonMonoBehaviour<ServerUIController>
 //	}
 
 
-
 	void OnClientConnect(string ip)
 	{
 		if (!clients.ContainsKey (ip))
@@ -76,17 +74,11 @@ public class ServerUIController : SingletonMonoBehaviour<ServerUIController>
 			OnClientActive (ip);
 		}
 
-		countConnectingClients++;
 		UpdateConnectNumbersText ();
 	}
 
 	void OnClientDisconnect(string ip)
 	{
-		if (countConnectingClients > 0)
-			countConnectingClients--;
-		else
-			countConnectingClients = 0;
-
 		UpdateConnectNumbersText ();
 
 		clients [ip].SetClientStatus (ListClientUI.Instance.disconnectColor);
@@ -144,7 +136,7 @@ public class ServerUIController : SingletonMonoBehaviour<ServerUIController>
 
 	void UpdateConnectNumbersText()
 	{
-		connectNumText.text = "Connected: " + countConnectingClients;
+		connectNumText.text = "Connected: " + AsynchronousSocketListener.Instance.activeConnections.Count;
 	}
 
 	void StartSendVideo()
